@@ -1,0 +1,17 @@
+packages:
+  "framer-motion": "For calm, fluid page transitions and micro-interactions"
+  "lucide-react": "For UI icons"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes"
+
+images:
+  - path: "artifacts/ego-consciente/public/images/hero-abstract.png"
+    description: "Soft, blurred abstract watercolor painting in warm beige, soft terracotta, and off-white. Extremely minimal, calm, serene, premium wellness aesthetic. No sharp edges."
+    aspect_ratio: "16:9"
+  - path: "artifacts/ego-consciente/public/images/ego-avatar.png"
+    description: "A perfect, smooth geometric sphere made of warm glowing amber-colored frosted glass, floating in empty soft beige space. Minimalist, premium 3D render."
+    aspect_ratio: "1:1"
+
+notes:
+  - No backend API exists. Using React Context and localStorage for all state management (auth, reflections, chat).
+  - All copy is strictly in Spanish as requested.
