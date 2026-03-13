@@ -76,13 +76,16 @@ export default function Onboarding() {
     setIsSaving(true);
     setSaveError(null);
 
-    const { error } = await supabase.from("onboarding_responses").insert({
-      user_id: user.id,
-      reason: reason.trim(),
-      incongruence_area: incongruenceArea,
-      difficulty,
-      daily_time: dailyTime,
-    });
+    const { error } = await supabase.from("onboarding_responses").upsert(
+      {
+        user_id: user.id,
+        reason: reason.trim(),
+        incongruence_area: incongruenceArea,
+        difficulty,
+        daily_time: dailyTime,
+      },
+      { onConflict: "user_id" }
+    );
 
     if (error) {
       setSaveError("Hubo un problema al guardar. Inténtalo de nuevo.");
