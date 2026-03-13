@@ -1,0 +1,62 @@
+Fix the Supabase auth confirmation flow for the Ego Consciente app.
+
+Use Pro reasoning. Do not explain first — implement the fix.
+
+Context:
+- The app uses React + Vite
+- Supabase auth is already connected
+- Registration currently sends a confirmation email that redirects to localhost and breaks the flow
+- The app already has onboarding logic:
+  - first successful access → onboarding if not completed
+  - if onboarding exists → dashboard
+- Keep the current UI, routes, Spanish copy, and visual style exactly the same
+- Do not redesign anything
+- Do not connect OpenAI yet
+
+Goal:
+Make email confirmation and auth redirects work correctly in the deployed Replit app instead of localhost.
+
+Implement all of this:
+
+1. Detect the correct public app origin for Replit and stop using localhost for auth redirects.
+2. Update sign-up flow so Supabase uses a valid redirect URL, for example:
+   window.location.origin + "/auth/callback"
+3. Create an auth callback route/page if needed, such as:
+   /auth/callback
+4. In that callback flow:
+   - recover or set the Supabase session from the URL
+   - then redirect correctly:
+     - if onboarding is incomplete → /onboarding
+     - if onboarding is complete → /dashboard
+5. Keep login flow working as it is now.
+6. Preserve onboarding logic and route protection.
+7. Make the solution work in React + Vite.
+8. Add graceful fallback handling if auth callback data is missing or invalid.
+9. Keep all visible text in Spanish.
+
+Important implementation detail:
+Because this is Vite, prefer using window.location.origin for redirect construction unless a better deployed Replit public URL already exists in the project.
+If useful, create a helper like:
+- getAuthRedirectUrl()
+and centralize redirect generation there.
+
+Also check whether the frontend signUp call needs:
+- options.emailRedirectTo
+or equivalent Supabase auth configuration.
+
+If Supabase dashboard settings must also be updated, clearly say exactly what values should be set for:
+- Site URL
+- additional redirect URLs
+
+When finished, report exactly:
+
+A. Files modified
+B. Redirect URL now used
+C. Whether I must change anything manually in Supabase
+D. Exact manual test plan:
+   1. register
+   2. receive email
+   3. confirm email
+   4. land in app
+   5. onboarding or dashboard redirect
+E. Any blocker or warning

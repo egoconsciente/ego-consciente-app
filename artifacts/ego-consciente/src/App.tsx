@@ -11,6 +11,7 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Onboarding from "@/pages/onboarding";
+import AuthCallback from "@/pages/auth-callback";
 import Dashboard from "@/pages/dashboard";
 import Chat from "@/pages/chat";
 import Reflection from "@/pages/reflection";
@@ -74,6 +75,7 @@ function Router() {
       <Route path="/login"><AuthRoute component={Login} /></Route>
       <Route path="/register"><AuthRoute component={Register} /></Route>
       <Route path="/onboarding"><OnboardingRoute component={Onboarding} /></Route>
+      <Route path="/auth/callback" component={AuthCallback} />
 
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/chat"><ProtectedRoute component={Chat} /></Route>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import { getAuthRedirectUrl } from "./auth-utils";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface User {
@@ -114,7 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name } },
+      options: {
+        data: { name },
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
     });
     if (error) return { error: error.message };
     return { error: null };
