@@ -71,47 +71,66 @@ export default function Onboarding() {
       return;
     }
 
-    // Step 4: save and finish
-    if (!user) return;
+    // Step 4: save and redirect
+    if (!user) {
+      setSaveError("No hay sesión activa. Por favor, vuelve a iniciar sesión.");
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
 
-    const { error } = await supabase.from("onboarding_responses").upsert(
-      {
-        user_id: user.id,
-        reason: reason.trim(),
-        incongruence_area: incongruenceArea,
-        difficulty,
-        daily_time: dailyTime,
-      },
-      { onConflict: "user_id" }
-    );
+    const payload = {
+      user_id: user.id,
+      reason: reason.trim(),
+      incongruence_area: incongruenceArea,
+      difficulty,
+      daily_time: dailyTime,
+    };
+
+    console.log("[Onboarding] Guardando respuestas:", payload);
+
+    const { error } = await supabase
+      .from("onboarding_responses")
+      .upsert(payload, { onConflict: "user_id" });
 
     if (error) {
-      setSaveError("Hubo un problema al guardar. Inténtalo de nuevo.");
+      console.error("[Onboarding] Error al guardar:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      setSaveError(
+        `No se pudo guardar (${error.code ?? "error desconocido"}). ` +
+          "Revisa la consola del navegador para ver el detalle."
+      );
       setIsSaving(false);
       return;
     }
 
+    console.log("[Onboarding] Guardado con éxito.");
     markOnboardingComplete();
     setLocation("/dashboard");
   };
 
   const slideVariants = {
-    enter: { opacity: 0, x: 40 },
+    enter: { opacity: 0, x: 32 },
     center: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -40 },
+    exit: { opacity: 0, x: -32 },
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    // overflow-x-hidden clips the decorative blobs; overflow-y-auto allows scrolling
+    // on very small screens so options are never cut off.
+    <div className="min-h-screen bg-background flex flex-col items-center px-6 py-10 relative overflow-x-hidden overflow-y-auto">
       {/* Decorative blobs */}
-      <div className="absolute top-[-15%] right-[-15%] w-80 h-80 bg-primary/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-15%] left-[-15%] w-80 h-80 bg-accent/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed top-[-15%] right-[-15%] w-80 h-80 bg-primary/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-[-15%] left-[-15%] w-80 h-80 bg-accent/8 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
-        <div className="mb-10 text-center">
+        <div className="mb-8 text-center">
           <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">
             Ego Consciente
           </p>
@@ -124,7 +143,7 @@ export default function Onboarding() {
         </div>
 
         {/* Progress indicator */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground font-medium">
               Paso {step} de {TOTAL_STEPS}
@@ -143,149 +162,147 @@ export default function Onboarding() {
           </div>
         </div>
 
-        {/* Step content */}
-        <div className="relative min-h-[340px]">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                <div className="bg-card border border-border rounded-3xl p-7 shadow-sm h-full">
-                  <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                    ¿Qué te trae hoy aquí?
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    No hay respuesta correcta. Solo observa lo primero que surge.
-                  </p>
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Escribe libremente..."
-                    className="w-full h-36 bg-background border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all text-base"
-                  />
+        {/*
+          Step content — natural height, no fixed container.
+          AnimatePresence mode="wait" ensures only one step is mounted
+          at a time so there is no visual overlap during transitions.
+        */}
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="bg-card border border-border rounded-3xl p-7 shadow-sm">
+                <h2 className="font-display text-xl font-semibold text-foreground mb-2">
+                  ¿Qué te trae hoy aquí?
+                </h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  No hay respuesta correcta. Solo observa lo primero que surge.
+                </p>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Escribe libremente..."
+                  className="w-full h-36 bg-background border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all text-base"
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="bg-card border border-border rounded-3xl p-7 shadow-sm">
+                <h2 className="font-display text-xl font-semibold text-foreground mb-2">
+                  ¿Dónde sientes más incongruencia ahora mismo?
+                </h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  El área donde hay más tensión entre lo que piensas, sientes y haces.
+                </p>
+                <div className="space-y-2.5">
+                  {INCONGRUENCE_OPTIONS.map((opt) => (
+                    <OptionButton
+                      key={opt}
+                      label={opt}
+                      selected={incongruenceArea === opt}
+                      onClick={() => setIncongruenceArea(opt)}
+                    />
+                  ))}
                 </div>
-              </motion.div>
-            )}
+              </div>
+            </motion.div>
+          )}
 
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                <div className="bg-card border border-border rounded-3xl p-7 shadow-sm h-full">
-                  <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                    ¿Dónde sientes más incongruencia ahora mismo?
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-5">
-                    El área donde hay más tensión entre lo que piensas, sientes y haces.
-                  </p>
-                  <div className="space-y-2.5">
-                    {INCONGRUENCE_OPTIONS.map((opt) => (
-                      <OptionButton
-                        key={opt}
-                        label={opt}
-                        selected={incongruenceArea === opt}
-                        onClick={() => setIncongruenceArea(opt)}
-                      />
-                    ))}
-                  </div>
+          {step === 3 && (
+            <motion.div
+              key="step3"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="bg-card border border-border rounded-3xl p-7 shadow-sm">
+                <h2 className="font-display text-xl font-semibold text-foreground mb-2">
+                  ¿Qué te cuesta más hoy?
+                </h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  No lo que debería costarte. Lo que realmente te cuesta.
+                </p>
+                <div className="space-y-2.5">
+                  {DIFFICULTY_OPTIONS.map((opt) => (
+                    <OptionButton
+                      key={opt}
+                      label={opt}
+                      selected={difficulty === opt}
+                      onClick={() => setDifficulty(opt)}
+                    />
+                  ))}
                 </div>
-              </motion.div>
-            )}
+              </div>
+            </motion.div>
+          )}
 
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                <div className="bg-card border border-border rounded-3xl p-7 shadow-sm h-full">
-                  <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                    ¿Qué te cuesta más hoy?
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-5">
-                    No lo que debería costarte. Lo que realmente te cuesta.
-                  </p>
-                  <div className="space-y-2.5">
-                    {DIFFICULTY_OPTIONS.map((opt) => (
-                      <OptionButton
-                        key={opt}
-                        label={opt}
-                        selected={difficulty === opt}
-                        onClick={() => setDifficulty(opt)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 4 && (
-              <motion.div
-                key="step4"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                <div className="bg-card border border-border rounded-3xl p-7 shadow-sm h-full">
-                  <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                    ¿Cuánto tiempo puedes dedicar al día?
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-5">
-                    Ser honesto aquí es ya una forma de congruencia.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {TIME_OPTIONS.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setDailyTime(opt)}
-                        className={`py-5 rounded-2xl border transition-all duration-200 font-semibold text-lg ${
-                          dailyTime === opt
-                            ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
-                            : "bg-card border-border text-foreground hover:border-primary/40 hover:bg-secondary"
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-
-                  {saveError && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-center"
+          {step === 4 && (
+            <motion.div
+              key="step4"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="bg-card border border-border rounded-3xl p-7 shadow-sm">
+                <h2 className="font-display text-xl font-semibold text-foreground mb-2">
+                  ¿Cuánto tiempo puedes dedicar al día?
+                </h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Ser honesto aquí es ya una forma de congruencia.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {TIME_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setDailyTime(opt)}
+                      className={`py-5 rounded-2xl border transition-all duration-200 font-semibold text-lg ${
+                        dailyTime === opt
+                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                          : "bg-card border-border text-foreground hover:border-primary/40 hover:bg-secondary"
+                      }`}
                     >
-                      {saveError}
-                    </motion.p>
-                  )}
+                      {opt}
+                    </button>
+                  ))}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
-        {/* Navigation */}
-        <div className="mt-6 flex items-center gap-3">
+                {saveError && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-5 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-center leading-relaxed"
+                  >
+                    {saveError}
+                  </motion.p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Navigation — always below the card, never overlapping */}
+        <div className="mt-5 flex items-center gap-3">
           {step > 1 && (
             <button
               type="button"
@@ -316,7 +333,7 @@ export default function Onboarding() {
         </div>
 
         {/* Ego note */}
-        <p className="mt-6 text-center text-xs text-muted-foreground leading-relaxed px-4">
+        <p className="mt-6 text-center text-xs text-muted-foreground leading-relaxed px-4 pb-4">
           "Lo que revelas aquí no te define. Solo ayuda a calibrar la observación."
         </p>
       </div>
