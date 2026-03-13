@@ -30,11 +30,10 @@ export default function Register() {
       setError("No pudimos crear tu cuenta. Inténtalo de nuevo.");
       setIsLoading(false);
     } else {
-      // Supabase may require email confirmation.
-      // If the session is immediately active, redirect to dashboard.
-      // Otherwise show a confirmation notice.
+      // Show brief transition screen while auth state updates.
+      // AuthRoute will redirect to /onboarding automatically once session is active.
       setEmailSent(true);
-      setTimeout(() => setLocation("/dashboard"), 1500);
+      setTimeout(() => setLocation("/onboarding"), 1500);
     }
   };
 

@@ -11,6 +11,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  onboardingComplete: boolean;
+  markOnboardingComplete: () => void;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   register: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
@@ -26,33 +28,81 @@ function mapUser(supabaseUser: SupabaseUser): User {
   };
 }
 
+async function checkOnboarding(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("onboarding_responses")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ? mapUser(session.user) : null);
-      setIsLoaded(true);
-    });
+    let mounted = true;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? mapUser(session.user) : null);
-    });
+    // Initial session check
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
 
-    return () => subscription.unsubscribe();
+      const mappedUser = session?.user ? mapUser(session.user) : null;
+      setUser(mappedUser);
+
+      if (mappedUser) {
+        const complete = await checkOnboarding(mappedUser.id);
+        if (mounted) setOnboardingComplete(complete);
+      }
+      if (mounted) setIsReady(true);
+    };
+
+    init();
+
+    // Auth state changes (login, logout, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+
+        // Token refresh and user updates don't require re-checking onboarding
+        if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          if (session?.user) setUser(mapUser(session.user));
+          return;
+        }
+
+        setIsReady(false);
+        const mappedUser = session?.user ? mapUser(session.user) : null;
+        setUser(mappedUser);
+
+        if (mappedUser) {
+          const complete = await checkOnboarding(mappedUser.id);
+          if (mounted) setOnboardingComplete(complete);
+        } else {
+          if (mounted) setOnboardingComplete(false);
+        }
+        if (mounted) setIsReady(true);
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const markOnboardingComplete = () => {
+    setOnboardingComplete(true);
+  };
 
   const login = async (
     email: string,
     password: string
   ): Promise<{ error: string | null }> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message };
     return { error: null };
   };
 
@@ -66,9 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: { data: { name } },
     });
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message };
     return { error: null };
   };
 
@@ -76,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  if (!isLoaded) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -89,7 +137,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, register, logout }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        onboardingComplete,
+        markOnboardingComplete,
+        login,
+        register,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

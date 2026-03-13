@@ -1,0 +1,119 @@
+Add the onboarding flow to the existing Ego Consciente app.
+
+Context:
+- The app already uses React + Vite
+- Supabase auth is already connected
+- Existing tables already exist: profiles, pea_entries, daily_progress
+- Keep the current UI, navigation, Spanish copy, and calm introspective style exactly as they are
+- Do not redesign the app
+- Do not connect OpenAI yet
+- Do not add unnecessary features
+- Do not diagnose or label the user anywhere
+- Keep the Ego Consciente tone aligned with the method
+
+Goal:
+Create a first-time onboarding flow so the app can understand the user's starting point before sending them to the dashboard.
+
+Functional requirements:
+
+1. Show onboarding only when the authenticated user has not completed it yet.
+2. Right after successful registration, send the user into onboarding.
+3. On future logins:
+   - if onboarding is incomplete, send the user to onboarding
+   - if onboarding is complete, send the user to dashboard
+4. After finishing onboarding, redirect to dashboard.
+
+Questions to include (all visible text in Spanish):
+
+Question 1
+Title:
+¿Qué te trae hoy aquí?
+Type:
+short free text
+
+Question 2
+Title:
+¿Dónde sientes más incongruencia ahora mismo?
+Options:
+- trabajo
+- pareja
+- familia
+- imagen pública
+- soledad
+- otra
+
+Question 3
+Title:
+¿Qué te cuesta más hoy?
+Options:
+- decir lo que pienso
+- reconocer lo que siento
+- actuar con claridad
+- sostener una decisión
+- no sé todavía
+
+Question 4
+Title:
+¿Cuánto tiempo puedes dedicar al día?
+Options:
+- 3 min
+- 5 min
+- 10 min
+- 15 min
+
+UX requirements:
+- Mobile-first
+- Minimal, calm, elegant
+- Spanish copy only
+- Add a small progress indicator:
+  - Paso 1 de 4
+  - Paso 2 de 4
+  - etc.
+- Keep transitions simple and smooth
+- Use the current design system and style already present in the app
+
+Database requirements:
+Create a new Supabase table called onboarding_responses with this structure:
+
+- user_id uuid primary key references auth.users(id) on delete cascade
+- reason text not null
+- incongruence_area text not null
+- difficulty text not null
+- daily_time text not null
+- created_at timestamptz default now() not null
+
+Also:
+- enable Row Level Security
+- users can only read and write their own onboarding row
+
+Use this onboarding table as the source of truth for whether onboarding is completed.
+If a row exists for the current user, onboarding is complete.
+
+Implementation requirements:
+1. Create the onboarding page and route
+2. Connect it to Supabase
+3. Save the responses into onboarding_responses
+4. Detect onboarding completion on app start / auth load
+5. Redirect appropriately based on auth + onboarding state
+6. Keep the dashboard, chat, PEA, and progress pages protected as they already are
+7. Do not break any current Supabase logic
+8. Keep all current Spanish labels and structure untouched outside this new feature
+
+Important:
+If SQL must be run manually in Supabase, say so clearly and generate the full SQL.
+If you create a schema file, place it at:
+supabase/onboarding_schema.sql
+
+When finished, report back with exactly this structure:
+
+A. Files created or modified
+B. Whether I must run SQL manually
+C. The full SQL content
+D. How onboarding completion is detected
+E. Exact manual test plan:
+   1. register
+   2. onboarding
+   3. redirect to dashboard
+   4. logout
+   5. login again without seeing onboarding
+F. Any blocker or warning
