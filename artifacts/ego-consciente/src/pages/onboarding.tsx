@@ -111,7 +111,7 @@ export default function Onboarding() {
 
     console.log("[Onboarding] Guardado con éxito.");
     markOnboardingComplete();
-    setLocation("/dashboard");
+    setLocation("/ego-intro");
   };
 
   const slideVariants = {

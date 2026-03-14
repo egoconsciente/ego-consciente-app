@@ -19,20 +19,25 @@ import { motion } from "framer-motion";
  *   the link was invalid or expired — show a clear Spanish error.
  */
 export default function AuthCallback() {
-  const { isAuthenticated, onboardingComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
   const [, setLocation] = useLocation();
   const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
-      setLocation(onboardingComplete ? "/dashboard" : "/onboarding");
+      if (!onboardingComplete) {
+        setLocation("/onboarding");
+      } else if (!portalComplete) {
+        setLocation("/ego-intro");
+      } else {
+        setLocation("/dashboard");
+      }
       return;
     }
 
-    // Brief grace period before declaring the link invalid
     const timeout = setTimeout(() => setShowError(true), 600);
     return () => clearTimeout(timeout);
-  }, [isAuthenticated, onboardingComplete, setLocation]);
+  }, [isAuthenticated, onboardingComplete, portalComplete, setLocation]);
 
   if (showError) {
     return (

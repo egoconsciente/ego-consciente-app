@@ -13,7 +13,9 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   onboardingComplete: boolean;
+  portalComplete: boolean;
   markOnboardingComplete: () => void;
+  markPortalComplete: () => void;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   register: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
@@ -38,15 +40,35 @@ async function checkOnboarding(userId: string): Promise<boolean> {
   return !!data;
 }
 
+async function checkPortal(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("journey_state")
+    .select("portal_completed")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data?.portal_completed;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [portalComplete, setPortalComplete] = useState(false);
+
+  const loadUserState = async (mappedUser: User | null) => {
+    if (mappedUser) {
+      const [onboarding, portal] = await Promise.all([
+        checkOnboarding(mappedUser.id),
+        checkPortal(mappedUser.id),
+      ]);
+      return { onboarding, portal };
+    }
+    return { onboarding: false, portal: false };
+  };
 
   useEffect(() => {
     let mounted = true;
 
-    // Initial session check
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
@@ -54,21 +76,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const mappedUser = session?.user ? mapUser(session.user) : null;
       setUser(mappedUser);
 
-      if (mappedUser) {
-        const complete = await checkOnboarding(mappedUser.id);
-        if (mounted) setOnboardingComplete(complete);
+      const state = await loadUserState(mappedUser);
+      if (mounted) {
+        setOnboardingComplete(state.onboarding);
+        setPortalComplete(state.portal);
+        setIsReady(true);
       }
-      if (mounted) setIsReady(true);
     };
 
     init();
 
-    // Auth state changes (login, logout, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        // Token refresh and user updates don't require re-checking onboarding
         if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
           if (session?.user) setUser(mapUser(session.user));
           return;
@@ -78,13 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const mappedUser = session?.user ? mapUser(session.user) : null;
         setUser(mappedUser);
 
-        if (mappedUser) {
-          const complete = await checkOnboarding(mappedUser.id);
-          if (mounted) setOnboardingComplete(complete);
-        } else {
-          if (mounted) setOnboardingComplete(false);
+        const state = await loadUserState(mappedUser);
+        if (mounted) {
+          setOnboardingComplete(state.onboarding);
+          setPortalComplete(state.portal);
+          setIsReady(true);
         }
-        if (mounted) setIsReady(true);
       }
     );
 
@@ -96,6 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const markOnboardingComplete = () => {
     setOnboardingComplete(true);
+  };
+
+  const markPortalComplete = () => {
+    setPortalComplete(true);
   };
 
   const login = async (
@@ -145,7 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated: !!user,
         onboardingComplete,
+        portalComplete,
         markOnboardingComplete,
+        markPortalComplete,
         login,
         register,
         logout,

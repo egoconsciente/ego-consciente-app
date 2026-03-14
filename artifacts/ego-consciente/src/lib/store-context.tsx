@@ -32,18 +32,32 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const loadData = async () => {
       setIsLoadingData(true);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("created_at")
-        .eq("id", user.id)
-        .single();
+      const { data: journeyState } = await supabase
+        .from("journey_state")
+        .select("process_started_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (profile) {
+      if (journeyState?.process_started_at) {
         const daysDiff = Math.floor(
-          (Date.now() - new Date(profile.created_at).getTime()) /
+          (Date.now() - new Date(journeyState.process_started_at).getTime()) /
             (1000 * 60 * 60 * 24)
         );
         setCurrentDay(Math.min(Math.max(daysDiff + 1, 1), 40));
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("created_at")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          const daysDiff = Math.floor(
+            (Date.now() - new Date(profile.created_at).getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+          setCurrentDay(Math.min(Math.max(daysDiff + 1, 1), 40));
+        }
       }
 
       const { data: entries, error } = await supabase

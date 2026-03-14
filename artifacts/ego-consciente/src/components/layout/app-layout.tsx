@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { Home, MessageSquare, BookOpen, TrendingUp, LogOut } from "lucide-react";
+import { Home, MessageSquare, BookOpen, TrendingUp, Map, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -18,6 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard", label: "Inicio", icon: Home },
     { href: "/chat", label: "Chat", icon: MessageSquare },
     { href: "/reflection", label: "Hoy", icon: BookOpen },
+    { href: "/journey", label: "Proceso", icon: Map },
     { href: "/progress", label: "Progreso", icon: TrendingUp },
   ];
 

@@ -12,24 +12,22 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Onboarding from "@/pages/onboarding";
 import AuthCallback from "@/pages/auth-callback";
+import EgoIntro from "@/pages/ego-intro";
+import Portal from "@/pages/portal";
 import Dashboard from "@/pages/dashboard";
 import Chat from "@/pages/chat";
 import Reflection from "@/pages/reflection";
 import Progress from "@/pages/progress";
+import Journey from "@/pages/journey";
 
 const queryClient = new QueryClient();
 
-// Protected Route: requires auth + completed onboarding
 const ProtectedRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Redirect to="/login" />;
-  }
-
-  if (!onboardingComplete) {
-    return <Redirect to="/onboarding" />;
-  }
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!onboardingComplete) return <Redirect to="/onboarding" />;
+  if (!portalComplete) return <Redirect to="/ego-intro" />;
 
   return (
     <StoreProvider>
@@ -38,32 +36,32 @@ const ProtectedRoute = ({ component: Component }: { component: React.ComponentTy
   );
 };
 
-// Auth Route: for login/register — redirect away if already authenticated
 const AuthRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
 
-  if (isAuthenticated && !onboardingComplete) {
-    return <Redirect to="/onboarding" />;
-  }
-
-  if (isAuthenticated && onboardingComplete) {
-    return <Redirect to="/dashboard" />;
-  }
+  if (isAuthenticated && !onboardingComplete) return <Redirect to="/onboarding" />;
+  if (isAuthenticated && onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
+  if (isAuthenticated && onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
 
-// Onboarding Route: requires auth, redirects away if onboarding already done
 const OnboardingRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Redirect to="/login" />;
-  }
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
+  if (onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
 
-  if (onboardingComplete) {
-    return <Redirect to="/dashboard" />;
-  }
+  return <Component />;
+};
+
+const IntroRoute = ({ component: Component }: { component: React.ComponentType }) => {
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!onboardingComplete) return <Redirect to="/onboarding" />;
+  if (portalComplete) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
@@ -77,10 +75,14 @@ function Router() {
       <Route path="/onboarding"><OnboardingRoute component={Onboarding} /></Route>
       <Route path="/auth/callback" component={AuthCallback} />
 
+      <Route path="/ego-intro"><IntroRoute component={EgoIntro} /></Route>
+      <Route path="/portal"><IntroRoute component={Portal} /></Route>
+
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/chat"><ProtectedRoute component={Chat} /></Route>
       <Route path="/reflection"><ProtectedRoute component={Reflection} /></Route>
       <Route path="/progress"><ProtectedRoute component={Progress} /></Route>
+      <Route path="/journey"><ProtectedRoute component={Journey} /></Route>
 
       <Route component={NotFound} />
     </Switch>

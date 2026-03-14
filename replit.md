@@ -97,17 +97,19 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
 
 - **Stack**: React, Vite, Tailwind CSS, Framer Motion, Wouter, Supabase (external)
 - **Auth**: Supabase Auth with email confirmation → `/auth/callback` handles the redirect
-- **Route structure**: `/` (landing), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/dashboard`, `/chat`, `/reflection`, `/progress`
-- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `ProtectedRoute` (dashboard + all inner pages)
+- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`
+- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `ProtectedRoute` (dashboard + all inner pages)
+- **User flow**: Landing (splash ritual on first visit) → Register → Onboarding → Ego Intro → Portal ("Comenzar el proceso") → Dashboard
 - **Supabase tables** (run SQL manually in Supabase dashboard):
   - `profiles` — auto-created via trigger on signup
   - `onboarding_responses` — first-time user intake (4 questions)
+  - `journey_state` — tracks intro_completed, portal_completed, process_started_at
   - `pea_entries` — daily PEA reflections (unique per user+day)
   - `daily_progress` — daily step tracking
   - `chat_messages` — persistent conversation with El Ego
   - `ego_memory` — single-row per user, computed understanding of user state
   - `ego_insights` — observations the Ego registers over time
-- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`
+- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`
 - **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
 - **Key env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (exposed via Vite `envPrefix`)
 
