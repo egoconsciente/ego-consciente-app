@@ -1,0 +1,133 @@
+Act as a multidisciplinary expert committee for the Ego Consciente project, including:
+- senior software architect
+- React + Vite engineer
+- Supabase specialist
+- conversational AI engineer
+- product designer for reflective apps
+- Guardian of the Ego Consciente method
+
+Use Pro reasoning and implement directly.
+
+Context:
+The app already has:
+- Supabase auth
+- onboarding_responses
+- pea_entries
+- daily_progress
+- working routes:
+  /, /login, /register, /auth/callback, /onboarding, /dashboard, /chat, /reflection, /progress
+
+Do not redesign the UI.
+Keep all visible copy in Spanish.
+Do not connect OpenAI yet.
+Do not remove any current functionality.
+
+Goal:
+Build the first version of the EGO ENGINE so the chat and system can use real user context instead of generic responses.
+
+Implement the following:
+
+1. Create a new SQL file:
+supabase/ego_engine_v1.sql
+
+2. Add these new tables with RLS and user ownership policies:
+
+chat_messages
+- id uuid primary key default gen_random_uuid()
+- user_id uuid not null references auth.users(id) on delete cascade
+- role text not null check (role in ('user','ego'))
+- content text not null
+- created_at timestamptz default now() not null
+
+ego_memory
+- user_id uuid primary key references auth.users(id) on delete cascade
+- current_day integer
+- primary_incongruence_area text
+- primary_difficulty text
+- latest_thought text
+- latest_emotion text
+- latest_action text
+- dominant_pattern_summary text
+- current_focus text
+- next_question text
+- suggested_step text
+- updated_at timestamptz default now() not null
+
+ego_insights
+- id uuid primary key default gen_random_uuid()
+- user_id uuid not null references auth.users(id) on delete cascade
+- source text not null
+- insight_text text not null
+- created_at timestamptz default now() not null
+
+3. Add safe-to-rerun SQL using:
+- CREATE TABLE IF NOT EXISTS
+- DROP POLICY IF EXISTS
+- CREATE POLICY
+
+4. On chat page load, fetch:
+- onboarding_responses
+- latest pea_entries
+- latest daily_progress
+- recent chat_messages
+- ego_memory
+
+5. Create a deterministic Ego State Builder in the frontend that computes:
+- primary_incongruence_area
+- primary_difficulty
+- latest_thought
+- latest_emotion
+- latest_action
+- a short dominant_pattern_summary
+- current_focus
+- next_question
+- suggested_step
+
+6. Save this state into ego_memory using upsert by user_id.
+
+7. Modify the chat so that:
+- each user message is stored in chat_messages
+- each Ego response is stored in chat_messages
+- initial Ego messages are generated from real user context
+- responses use three modes:
+  - Reflect
+  - Clarify
+  - Step
+
+8. If the user has onboarding but no PEA yet:
+- the Ego should acknowledge the onboarding context
+- invite the user to complete today's reflection first
+
+9. If the user has no onboarding:
+- redirect to /onboarding
+
+10. Keep current local UX smooth and mobile-safe.
+
+11. Do not use OpenAI yet.
+The response engine should be deterministic and context-based for now.
+
+12. Add development-safe console logs for:
+- fetched context
+- computed ego_memory payload
+- Supabase write result/errors
+
+Keep the Ego tone:
+- calm
+- intimate
+- reflective
+- structural
+- non-moralizing
+- never diagnostic
+- never label the user
+- prefer expressions like:
+  "tu sistema tiende a..."
+  "veo una fricción entre..."
+  "hoy parece que..."
+
+When finished, report exactly:
+A. files created or modified
+B. full SQL content
+C. how ego_memory is computed
+D. how chat persistence works
+E. exact manual test plan
+F. blockers or warnings

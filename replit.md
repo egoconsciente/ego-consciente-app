@@ -91,6 +91,26 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/ego-consciente` (`@workspace/ego-consciente`)
+
+React + Vite web app — "Ego Consciente" Spanish-language introspective self-observation tool using the PEA (Pensamiento, Emoción, Acción) framework across a 40-day journey.
+
+- **Stack**: React, Vite, Tailwind CSS, Framer Motion, Wouter, Supabase (external)
+- **Auth**: Supabase Auth with email confirmation → `/auth/callback` handles the redirect
+- **Route structure**: `/` (landing), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/dashboard`, `/chat`, `/reflection`, `/progress`
+- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `ProtectedRoute` (dashboard + all inner pages)
+- **Supabase tables** (run SQL manually in Supabase dashboard):
+  - `profiles` — auto-created via trigger on signup
+  - `onboarding_responses` — first-time user intake (4 questions)
+  - `pea_entries` — daily PEA reflections (unique per user+day)
+  - `daily_progress` — daily step tracking
+  - `chat_messages` — persistent conversation with El Ego
+  - `ego_memory` — single-row per user, computed understanding of user state
+  - `ego_insights` — observations the Ego registers over time
+- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`
+- **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
+- **Key env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (exposed via Vite `envPrefix`)
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
