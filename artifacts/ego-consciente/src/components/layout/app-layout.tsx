@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { Home, MessageSquare, BookOpen, TrendingUp, Map, LogOut } from "lucide-react";
+import { EgoGuideButton } from "@/components/ego-guide";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -103,6 +104,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="text-[10px] font-medium">Salir</span>
         </button>
       </nav>
+
+      <EgoGuideButton />
     </div>
   );
 }

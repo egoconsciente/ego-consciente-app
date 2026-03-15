@@ -43,10 +43,10 @@ async function checkOnboarding(userId: string): Promise<boolean> {
 async function checkPortal(userId: string): Promise<boolean> {
   const { data } = await supabase
     .from("journey_state")
-    .select("portal_completed")
+    .select("portal_completed, process_started_at")
     .eq("user_id", userId)
     .maybeSingle();
-  return !!data?.portal_completed;
+  return !!data?.portal_completed && !!data?.process_started_at;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

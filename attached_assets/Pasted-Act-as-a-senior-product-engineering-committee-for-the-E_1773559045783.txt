@@ -1,0 +1,192 @@
+Act as a senior product + engineering committee for the Ego Consciente app.
+
+Use Pro reasoning and implement directly.
+
+Important:
+- Do NOT redesign the whole app
+- Keep all visible copy in Spanish
+- Keep the current visual identity calm, minimal and introspective
+- Preserve existing auth, onboarding, demo mode, journey_state, dashboard, chat, reflection, progress, and Supabase integration
+- Do NOT connect OpenAI yet
+- Do NOT remove any existing route unless absolutely necessary
+
+Goal:
+Implement the correct structural flow for the app before the final narrative polish.
+
+Context:
+Ego Consciente should feel like a guided threshold, not a generic app.
+The app already has:
+- splash / ritual layer
+- auth
+- onboarding
+- ego-intro
+- portal
+- dashboard
+- chat
+- reflection
+- progress
+- journey shell
+- demo replay mode
+- Supabase state
+
+We now need to correct and consolidate the product flow.
+
+CORE PRODUCT DECISION FOR THIS STEP
+
+After a user:
+- registers / logs in
+- completes onboarding
+
+they should NOT be sent directly into the 40-day process.
+
+Instead, they must land on a pre-process main screen (dashboard-like home).
+
+On that screen:
+- the top primary state must say:
+  "Empezar mi proceso"
+  instead of "Día 1"
+- the rest of the screen can keep the existing dashboard structure as much as possible
+- there must be a persistent Ego guide button near the bottom center
+
+The real process begins only when the user explicitly starts it.
+
+Then the sequence should be:
+1. pre-process home
+2. Ego Guide introduction
+3. Portal / Umbral
+4. real process start
+5. dashboard showing Día 1
+
+IMPLEMENTATION REQUIREMENTS
+
+1. POST-ONBOARDING ROUTING
+Change the routing logic so that:
+- after onboarding completion, the user is sent to /dashboard
+- but /dashboard must render in a PRE-PROCESS state if the real process has not started yet
+
+2. PRE-PROCESS DASHBOARD STATE
+On /dashboard, if the user has onboarding completed but process_started_at is missing or null:
+- render a pre-process home state
+- at the top, show:
+  "Empezar mi proceso"
+- do NOT show "Día 1" yet
+- keep the rest of the dashboard structure as intact as possible
+- this screen is the user's main screen before crossing the threshold
+
+3. START PROCESS FLOW
+When the user clicks the main CTA from that pre-process home:
+- navigate first to /ego-intro
+- then to /portal
+- then after confirming the portal CTA:
+  - upsert journey_state
+  - set portal_completed = true
+  - set process_started_at = now()
+  - set current_day = 1 if not already set
+  - redirect to /dashboard
+
+4. FIX THE PORTAL BUG
+Current known bug:
+The "Comenzar el proceso" button can stay stuck in "Iniciando..."
+Fix it robustly:
+- wrap Supabase write in try/catch
+- log exact error
+- in finally or safe success path, ensure navigation does not freeze
+- if write succeeds, redirect to /dashboard
+- if write fails, stop loading and show useful development-safe feedback
+- add a small timeout/failsafe if needed so the button cannot stay frozen forever
+
+5. ACTIVE PROCESS DASHBOARD STATE
+Once process_started_at exists:
+- /dashboard must now show the real process state
+- the top must show:
+  "Día X"
+  based on current_day
+- keep current layout structure as much as possible
+
+6. PERSISTENT EGO GUIDE BUTTON
+Add a persistent Ego guide button that is visible on protected app screens.
+Requirements:
+- visible at least on:
+  /dashboard
+  /chat
+  /reflection
+  /progress
+  /journey
+- position: bottom center or bottom floating area
+- label can simply be:
+  "EGO"
+- if a more symbolic icon is easy, use:
+  - a bust/person icon, or
+  - a triquetra icon
+- if not, a simple circular button with "EGO" is enough
+
+7. EGO GUIDE OVERLAY / CHAT
+When pressing the EGO button:
+- open a lightweight overlay, modal, drawer, or floating chat panel
+- this is NOT the main process chat
+- it is the Ego as permanent guide of the system
+- initial message in Spanish:
+  "¿En qué te puedo ayudar? Puedes preguntarme cualquier cosa sobre la aplicación, el proceso o cómo avanzar dentro de él."
+- support deterministic helper responses for now (no OpenAI yet)
+- it should be able to explain:
+  - what the process is
+  - what each section does
+  - what /chat is
+  - what /reflection is
+  - what /progress is
+  - what /journey is
+  - how to start the process
+- keep responses aligned with Ego Consciente tone, but do not over-polish narrative yet
+
+8. BEFORE PROCESS START, OTHER ROUTES MUST BE HANDLED CLEANLY
+If a user has onboarding completed but process not started yet, and opens:
+- /chat
+- /reflection
+- /progress
+- /journey
+
+Do NOT let the UX feel broken.
+Choose one of these clean behaviors:
+A. show a gated placeholder state:
+   "Aún no has comenzado tu proceso."
+   with a CTA back to /dashboard
+OR
+B. redirect back to /dashboard pre-process
+Choose the cleaner option and keep it consistent.
+
+9. KEEP DEMO MODE WORKING
+Do not break demo replay mode.
+The new pre-process flow and process_started_at logic must work in normal mode and demo replay mode.
+
+10. USE journey_state AS SOURCE OF TRUTH
+Prefer using the existing journey_state table/state for:
+- portal_completed
+- process_started_at
+- current_day
+- intro_completed if already present
+Do not introduce a new table unless absolutely necessary.
+
+11. ONLY CREATE SQL IF REQUIRED
+If a schema patch is needed, create it in:
+- supabase/step1_flow_patch.sql
+and report clearly that it must be run manually.
+
+12. DO NOT DO FINAL COPY POLISH YET
+For this step:
+- prioritize correct flow
+- stable state transitions
+- correct route behavior
+- persistent Ego guide button
+- robust portal start behavior
+
+When finished, report exactly:
+
+A. Files created or modified
+B. Routes affected
+C. How post-onboarding routing works now
+D. How pre-process dashboard works
+E. How the persistent EGO guide works
+F. How the process officially starts now
+G. Whether SQL must be run manually
+H. Exact manual test plan
+I. Any blocker or warning

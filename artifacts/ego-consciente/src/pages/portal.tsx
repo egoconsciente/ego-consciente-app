@@ -31,21 +31,28 @@ export default function Portal() {
   const { user, markPortalComplete } = useAuth();
   const [, setLocation] = useLocation();
   const [isStarting, setIsStarting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const navigateToDashboard = () => {
+    console.log("[Portal] Redirecting to /dashboard");
+    markPortalComplete();
+    setLocation("/dashboard");
+  };
 
   const handleStart = async () => {
     if (!user || isStarting) return;
     setIsStarting(true);
+    setErrorMsg(null);
     console.log("[Portal] Start process clicked");
 
     const fallbackTimer = setTimeout(() => {
       console.log("[Portal] Fallback timeout — forcing navigation");
-      markPortalComplete();
-      setLocation("/dashboard");
-    }, 2000);
+      navigateToDashboard();
+    }, 4000);
 
     try {
       console.log("[Portal] Writing journey_state");
-      await supabase.from("journey_state").upsert(
+      const { error } = await supabase.from("journey_state").upsert(
         {
           user_id: user.id,
           intro_completed: true,
@@ -54,13 +61,22 @@ export default function Portal() {
         },
         { onConflict: "user_id" }
       );
-    } catch (err) {
-      console.error("[Portal] Error guardando journey_state:", err);
-    } finally {
+
       clearTimeout(fallbackTimer);
-      console.log("[Portal] Redirecting to /dashboard");
-      markPortalComplete();
-      setLocation("/dashboard");
+
+      if (error) {
+        console.error("[Portal] Supabase error:", error.message, error.code, error.details);
+        setErrorMsg(`Error al iniciar (${error.code || "desconocido"}). Revisa la consola.`);
+        setIsStarting(false);
+        return;
+      }
+
+      navigateToDashboard();
+    } catch (err) {
+      clearTimeout(fallbackTimer);
+      console.error("[Portal] Unexpected error:", err);
+      setErrorMsg("Error inesperado. Intenta de nuevo.");
+      setIsStarting(false);
     }
   };
 
@@ -70,7 +86,6 @@ export default function Portal() {
       <div className="fixed bottom-[-20%] left-[-20%] w-96 h-96 bg-accent/6 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-md">
-        {/* Triquetra Symbol */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -89,7 +104,6 @@ export default function Portal() {
           </div>
         </motion.div>
 
-        {/* Title */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,7 +113,6 @@ export default function Portal() {
           El umbral
         </motion.h1>
 
-        {/* Description */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -119,7 +132,16 @@ export default function Portal() {
           mínimo congruente.
         </motion.p>
 
-        {/* CTA */}
+        {errorMsg && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-center leading-relaxed"
+          >
+            {errorMsg}
+          </motion.p>
+        )}
+
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,7 +160,6 @@ export default function Portal() {
           )}
         </motion.button>
 
-        {/* Subtle note */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

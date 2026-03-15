@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { StoreProvider } from "@/lib/store-context";
 import { isDemoMode } from "@/lib/demo-mode";
 import { DemoBanner } from "@/components/demo-banner";
+import { ProcessGate } from "@/components/process-gate";
 
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
@@ -25,39 +26,23 @@ import DemoActivate from "@/pages/demo-activate";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
-
-  if (!isAuthenticated) return <Redirect to="/login" />;
-  if (!onboardingComplete) return <Redirect to="/onboarding" />;
-  if (!portalComplete) return <Redirect to="/ego-intro" />;
-
-  return (
-    <StoreProvider>
-      <Component />
-    </StoreProvider>
-  );
-};
-
 const AuthRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete } = useAuth();
   const demo = isDemoMode();
 
   if (isAuthenticated && demo) return <Redirect to="/onboarding" />;
   if (isAuthenticated && !onboardingComplete) return <Redirect to="/onboarding" />;
-  if (isAuthenticated && onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
-  if (isAuthenticated && onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
+  if (isAuthenticated && onboardingComplete) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
 
 const OnboardingRoute = ({ component: Component }: { component: React.ComponentType }) => {
-  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+  const { isAuthenticated, onboardingComplete } = useAuth();
   const demo = isDemoMode();
 
   if (!isAuthenticated) return <Redirect to="/login" />;
-  if (!demo && onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
-  if (!demo && onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
+  if (!demo && onboardingComplete) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
@@ -73,6 +58,40 @@ const IntroRoute = ({ component: Component }: { component: React.ComponentType }
   return <Component />;
 };
 
+const DashboardRoute = ({ component: Component }: { component: React.ComponentType }) => {
+  const { isAuthenticated, onboardingComplete } = useAuth();
+
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!onboardingComplete) return <Redirect to="/onboarding" />;
+
+  return (
+    <StoreProvider>
+      <Component />
+    </StoreProvider>
+  );
+};
+
+const ProcessRoute = ({ component: Component }: { component: React.ComponentType }) => {
+  const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!onboardingComplete) return <Redirect to="/onboarding" />;
+
+  if (!portalComplete) {
+    return (
+      <StoreProvider>
+        <ProcessGate />
+      </StoreProvider>
+    );
+  }
+
+  return (
+    <StoreProvider>
+      <Component />
+    </StoreProvider>
+  );
+};
+
 function Router() {
   return (
     <Switch>
@@ -85,11 +104,11 @@ function Router() {
       <Route path="/ego-intro"><IntroRoute component={EgoIntro} /></Route>
       <Route path="/portal"><IntroRoute component={Portal} /></Route>
 
-      <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
-      <Route path="/chat"><ProtectedRoute component={Chat} /></Route>
-      <Route path="/reflection"><ProtectedRoute component={Reflection} /></Route>
-      <Route path="/progress"><ProtectedRoute component={Progress} /></Route>
-      <Route path="/journey"><ProtectedRoute component={Journey} /></Route>
+      <Route path="/dashboard"><DashboardRoute component={Dashboard} /></Route>
+      <Route path="/chat"><ProcessRoute component={Chat} /></Route>
+      <Route path="/reflection"><ProcessRoute component={Reflection} /></Route>
+      <Route path="/progress"><ProcessRoute component={Progress} /></Route>
+      <Route path="/journey"><ProcessRoute component={Journey} /></Route>
 
       <Route path="/demo" component={DemoActivate} />
       <Route component={NotFound} />

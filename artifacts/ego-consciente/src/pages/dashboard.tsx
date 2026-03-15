@@ -2,7 +2,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useStore } from "@/lib/store-context";
-import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map } from "lucide-react";
+import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+
 
 const DAILY_PHRASES = [
   "Tu ego no es tu esencia. Es la historia que hoy organiza tu experiencia.",
@@ -47,10 +49,85 @@ const DAILY_PHRASES = [
   "El proceso no termina aquí. Aquí es donde realmente empieza.",
 ];
 
-export default function Dashboard() {
-  const { user } = useAuth();
-  const { currentDay, reflections } = useStore();
+function Triquetra({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.2" className={className}>
+      {[0, 120, 240].map((angle) => (
+        <ellipse key={angle} cx="50" cy="32" rx="16" ry="28" transform={`rotate(${angle} 50 52)`} />
+      ))}
+    </svg>
+  );
+}
 
+function PreProcessDashboard({ userName }: { userName: string }) {
+  return (
+    <AppLayout>
+      <div className="max-w-5xl mx-auto p-6 lg:p-10 pt-12">
+        <header className="mb-12">
+          <h1 className="font-display text-4xl lg:text-5xl font-semibold mb-3">
+            Hola, {userName}.
+          </h1>
+          <p className="text-xl text-muted-foreground font-light">
+            Tu proceso de observación te espera.
+          </p>
+        </header>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-gradient-to-br from-primary to-accent p-10 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden mb-8"
+        >
+          <div className="absolute top-0 right-0 -mr-12 -mt-12 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="mb-6"
+            >
+              <Triquetra className="w-16 h-16 text-primary-foreground/60" />
+            </motion.div>
+
+            <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">
+              Empezar mi proceso
+            </h2>
+            <p className="text-primary-foreground/70 mb-8 max-w-md leading-relaxed">
+              40 días de observación consciente. Un pensamiento, una emoción, una acción — cada día.
+            </p>
+
+            <Link
+              href="/ego-intro"
+              className="inline-flex items-center gap-3 px-10 py-5 bg-primary-foreground text-primary rounded-2xl font-semibold text-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            >
+              Comenzar
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="bg-accent/10 border border-accent/20 rounded-3xl p-8"
+        >
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
+            Antes de cruzar el umbral
+          </p>
+          <p className="font-display text-lg text-foreground leading-relaxed italic">
+            "No vengo a decirte quién eres. Vengo a mostrarte cómo se construye la historia que hoy llamas 'yo'."
+          </p>
+        </motion.div>
+      </div>
+    </AppLayout>
+  );
+}
+
+function ActiveDashboard({ userName }: { userName: string }) {
+  const { currentDay, reflections } = useStore();
   const hasReflectedToday = reflections.some((r) => r.day === currentDay);
   const todayPhrase = DAILY_PHRASES[(currentDay - 1) % DAILY_PHRASES.length];
 
@@ -59,14 +136,13 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto p-6 lg:p-10 pt-12">
         <header className="mb-12">
           <h1 className="font-display text-4xl lg:text-5xl font-semibold mb-3">
-            Hola, {user?.name || "Caminante"}.
+            Hola, {userName}.
           </h1>
           <p className="text-xl text-muted-foreground font-light">
             ¿Qué parte de ti está al mando el día de hoy?
           </p>
         </header>
 
-        {/* Daily Phrase Card */}
         <div className="bg-accent/10 border border-accent/20 rounded-3xl p-8 mb-8">
           <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
             Frase de hoy — Día {currentDay}
@@ -77,7 +153,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Day Card */}
           <div className="bg-gradient-to-br from-primary to-accent p-8 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 flex flex-col h-full justify-between">
@@ -106,7 +181,6 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-6">
-            {/* Chat Card */}
             <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 flex flex-col justify-between group">
               <div>
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
@@ -129,7 +203,6 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Reflection Card */}
               <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
                 <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-4 text-accent group-hover:scale-110 transition-transform duration-300">
                   <BookOpen className="w-5 h-5" />
@@ -146,7 +219,6 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              {/* Progress Card */}
               <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
                 <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center mb-4 text-secondary-foreground group-hover:scale-110 transition-transform duration-300">
                   <TrendingUp className="w-5 h-5" />
@@ -168,4 +240,15 @@ export default function Dashboard() {
       </div>
     </AppLayout>
   );
+}
+
+export default function Dashboard() {
+  const { user, portalComplete } = useAuth();
+  const userName = user?.name || "Caminante";
+
+  if (!portalComplete) {
+    return <PreProcessDashboard userName={userName} />;
+  }
+
+  return <ActiveDashboard userName={userName} />;
 }

@@ -97,9 +97,12 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
 
 - **Stack**: React, Vite, Tailwind CSS, Framer Motion, Wouter, Supabase (external)
 - **Auth**: Supabase Auth with email confirmation → `/auth/callback` handles the redirect
-- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`
-- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `ProtectedRoute` (dashboard + all inner pages)
-- **User flow**: Landing (splash ritual on first visit) → Register → Onboarding → Ego Intro → Portal ("Comenzar el proceso") → Dashboard
+- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`, `/demo`
+- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `DashboardRoute` (/dashboard — pre-process or active), `ProcessRoute` (/chat, /reflection, /progress, /journey — gated until process started)
+- **User flow**: Landing → Register → Onboarding → Dashboard (pre-process: "Empezar mi proceso") → Ego Intro → Portal ("Comenzar el proceso") → Dashboard (active: "Día X")
+- **Pre-process state**: After onboarding, dashboard shows "Empezar mi proceso" CTA. Process pages (/chat, /reflection, /progress, /journey) show a gate message with CTA back to dashboard.
+- **Active process state**: After portal completion, dashboard shows "Día X" with full navigation. All process pages unlocked.
+- **EGO Guide**: Persistent floating triquetra button (bottom-right) on all AppLayout pages. Opens overlay with deterministic help responses about the app, process, sections, PEA framework. No AI — knowledge base only.
 - **Supabase tables** (run SQL manually in Supabase dashboard):
   - `profiles` — auto-created via trigger on signup
   - `onboarding_responses` — first-time user intake (4 questions)
