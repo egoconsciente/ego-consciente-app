@@ -111,7 +111,11 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
   - `ego_insights` — observations the Ego registers over time
 - **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`
 - **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
-- **Demo Replay Mode**: Add `?demo=1` to URL or set `localStorage.ego_demo_replay = "true"`. Bypasses "already completed" redirects for onboarding/ego-intro/portal, always shows splash ritual, shows a top banner with "Reiniciar demo" and "Salir del modo demo". Does NOT affect normal users.
+- **Demo Replay Mode**: Three ways to activate:
+  1. Navigate to `/demo` (dedicated route — signs out, activates demo, redirects to `/`)
+  2. Add `?demo=1` to any URL (backward compat — same behavior)
+  3. Click "Ver demo completo" button on landing page (dev environments only)
+  All methods: set `localStorage.ego_demo_replay`, clear ritual keys, sign out, force restart at `/`. Bypasses "already completed" redirects for onboarding/ego-intro/portal, always shows splash ritual, shows a top banner with "Reiniciar demo" and "Salir del modo demo". Button only visible in dev environments (localhost, .replit.dev, or Vite DEV mode). Does NOT affect normal users.
 - **Key env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (exposed via Vite `envPrefix`)
 
 ### `scripts` (`@workspace/scripts`)

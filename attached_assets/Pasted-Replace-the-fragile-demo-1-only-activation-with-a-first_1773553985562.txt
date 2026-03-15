@@ -1,0 +1,63 @@
+Replace the fragile ?demo=1-only activation with a first-class Demo Entry for the Ego Consciente app.
+
+Important:
+- Keep normal user behavior unchanged
+- Keep all visible user-facing copy in Spanish
+- Do not redesign the app
+- Do not break auth, onboarding, ego-intro, portal, dashboard, chat, reflection, progress, or journey
+
+Problem:
+The current demo replay mode depends on ?demo=1 and localStorage only.
+That is too fragile for repeated mobile testing.
+The product owner needs an easy way to restart and replay the full experience from the beginning without manually editing the URL.
+
+Goal:
+Create an explicit, easy-to-use demo entry flow for internal testing.
+
+Implement this:
+
+1. Add a visible developer-only button on the landing page:
+   - Label in Spanish: "Ver demo completo"
+   - Place it below the normal CTA buttons
+   - Style it subtly so it feels secondary, not public-facing
+
+2. Clicking "Ver demo completo" must:
+   - set ego_demo_replay = "true" in localStorage
+   - clear ritual-related localStorage keys
+   - sign out the current user if authenticated
+   - force restart to "/"
+   - start the full demo flow from the beginning
+
+3. Keep the existing ?demo=1 support too, but make the new button the preferred way to enter demo mode.
+
+4. Keep the DemoBanner global:
+   - visible on all routes while demo mode is active
+   - with:
+     - "Reiniciar demo"
+     - "Salir del modo demo"
+
+5. Add an optional dedicated route:
+   - /demo
+   When opened, it should activate demo replay and redirect to "/"
+
+6. For safety:
+   - do not show the "Ver demo completo" button to normal end users in production builds if there is a simple way to scope it
+   - if needed, show it only when:
+     - running in Replit preview/dev
+     OR
+     - a simple internal flag is enabled
+
+7. Add clear console logs:
+   - [DemoMode] Activated from button
+   - [DemoMode] Activated from /demo
+   - [DemoMode] Restarting replay
+   - [DemoMode] Exiting demo mode
+
+When finished, report exactly:
+
+A. Files modified
+B. How the new demo entry works
+C. Whether ?demo=1 still works
+D. Whether /demo was added
+E. Exact manual test plan
+F. Any blocker or warning

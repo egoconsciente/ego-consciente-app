@@ -7,17 +7,16 @@ export function isDemoMode(): boolean {
 }
 
 export function activateDemoMode(): void {
-  console.log("[DemoMode] Activado — guardando en localStorage");
   localStorage.setItem(DEMO_KEY, "true");
 }
 
 export function exitDemoMode(): void {
-  console.log("[DemoMode] Salir del modo demo");
+  console.log("[DemoMode] Exiting demo mode");
   localStorage.removeItem(DEMO_KEY);
 }
 
 export function resetDemoReplay(): void {
-  console.log("[DemoMode] Reiniciar demo — limpiando ritual localStorage");
+  console.log("[DemoMode] Restarting replay");
   localStorage.removeItem(RITUAL_KEY);
 }
 
@@ -28,4 +27,16 @@ export function shouldShowRitual(): boolean {
 
 export function getAppBase(): string {
   return (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) || "/";
+}
+
+export function isDevEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.includes(".replit.dev") ||
+    host.includes(".repl.co") ||
+    import.meta.env.DEV === true
+  );
 }

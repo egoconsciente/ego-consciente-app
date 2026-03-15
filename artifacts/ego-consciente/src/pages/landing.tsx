@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { shouldShowRitual, isDemoMode } from "@/lib/demo-mode";
+import { shouldShowRitual, isDemoMode, isDevEnvironment, activateDemoMode, resetDemoReplay, getAppBase } from "@/lib/demo-mode";
+import { useAuth } from "@/lib/auth-context";
 
 const STORAGE_KEY = "ego_ritual_seen";
 
@@ -41,6 +42,8 @@ export default function Landing() {
   const showRitual = shouldShowRitual();
   const [phase, setPhase] = useState<Phase>(showRitual ? "splash" : "landing");
   const [introIndex, setIntroIndex] = useState(0);
+  const { logout } = useAuth();
+  const showDemoButton = isDevEnvironment() && !isDemoMode();
 
   useEffect(() => {
     if (phase !== "splash") return;
@@ -203,6 +206,28 @@ export default function Landing() {
             Ya tengo cuenta
           </Link>
         </motion.div>
+
+          {showDemoButton && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1.2 }}
+              className="mt-8"
+            >
+              <button
+                onClick={async () => {
+                  console.log("[DemoMode] Activated from button");
+                  activateDemoMode();
+                  resetDemoReplay();
+                  await logout();
+                  window.location.replace(getAppBase());
+                }}
+                className="px-5 py-2 text-sm text-muted-foreground/60 hover:text-muted-foreground border border-border/30 hover:border-border/60 rounded-xl transition-all duration-300"
+              >
+                Ver demo completo
+              </button>
+            </motion.div>
+          )}
       </div>
     </div>
   );

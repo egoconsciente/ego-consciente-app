@@ -21,6 +21,7 @@ import Chat from "@/pages/chat";
 import Reflection from "@/pages/reflection";
 import Progress from "@/pages/progress";
 import Journey from "@/pages/journey";
+import DemoActivate from "@/pages/demo-activate";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,7 @@ function Router() {
       <Route path="/progress"><ProtectedRoute component={Progress} /></Route>
       <Route path="/journey"><ProtectedRoute component={Journey} /></Route>
 
+      <Route path="/demo" component={DemoActivate} />
       <Route component={NotFound} />
     </Switch>
   );
