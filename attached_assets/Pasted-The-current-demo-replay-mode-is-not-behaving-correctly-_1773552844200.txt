@@ -1,0 +1,82 @@
+The current demo replay mode is not behaving correctly.
+
+Diagnosis:
+The demo flag may be active internally, but the app does not fully restart the navigation flow when demo mode is enabled.
+As a result:
+- the user may stay inside an already-loaded route like /ego-intro or /portal
+- the DemoBanner is not visible from all screens
+- the "Reiniciar demo" and "Salir del modo demo" controls are not consistently accessible
+
+Goal:
+Fix Demo Replay Mode so it works as a true global replay mode.
+
+Important:
+- Do NOT redesign the UI
+- Keep all visible copy in Spanish
+- Preserve current auth, onboarding, ego-intro, portal, dashboard, journey, chat, reflection, and progress behavior
+- Do not change normal user behavior outside demo mode
+
+Required behavior:
+
+1. Demo mode detection must work globally on every route
+   - detect demo mode from:
+     a) URL param ?demo=1
+     b) localStorage key ego_demo_replay = "true"
+
+2. On first detection of ?demo=1:
+   - store ego_demo_replay = "true" in localStorage
+   - then force a full navigation reset to "/"
+   - use replace navigation so the user truly restarts the flow from the beginning
+   - remove the query param from the visible URL after activation if useful
+
+3. The DemoBanner must be mounted globally
+   - it must render from the root layout / App shell, not only on landing
+   - it must be visible on all screens while demo mode is active:
+     /, /login, /register, /onboarding, /ego-intro, /portal, /dashboard, /journey, /chat, /reflection, /progress
+   - it must not depend on a specific route
+
+4. The DemoBanner must include two controls in Spanish:
+   - "Reiniciar demo"
+   - "Salir del modo demo"
+
+5. "Reiniciar demo" must:
+   - clear ritual-related localStorage keys
+   - keep ego_demo_replay = "true"
+   - sign out current user if authenticated
+   - force navigation to "/"
+   - restart the full flow from splash again
+
+6. "Salir del modo demo" must:
+   - remove ego_demo_replay from localStorage
+   - clear temporary demo replay state if needed
+   - reload or navigate to "/"
+   - restore normal app behavior immediately
+
+7. Route guards must support demo mode globally
+   - in demo mode, completed onboarding / intro / portal must not block replay
+   - the flow must be replayable from the beginning even for users who already completed everything
+   - normal mode must remain unchanged
+
+8. Make sure demo mode works from deep links too
+   Example:
+   if the user opens /portal?demo=1 or /chat?demo=1,
+   the app should activate demo mode and still restart from "/"
+
+9. Add development-safe console logs:
+   - when demo mode is activated
+   - when the app forces redirect to "/"
+   - when DemoBanner mounts
+   - when Reiniciar demo is pressed
+   - when Salir del modo demo is pressed
+
+10. Do not break current database logic.
+
+When finished, report exactly:
+
+A. Root cause
+B. Files modified
+C. Where DemoBanner is now mounted
+D. How demo mode is detected globally
+E. How forced restart works
+F. Exact manual test plan
+G. Any remaining warning
