@@ -35,25 +35,33 @@ export default function Portal() {
   const handleStart = async () => {
     if (!user || isStarting) return;
     setIsStarting(true);
+    console.log("[Portal] Start process clicked");
 
-    const { error } = await supabase.from("journey_state").upsert(
-      {
-        user_id: user.id,
-        intro_completed: true,
-        portal_completed: true,
-        process_started_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
+    const fallbackTimer = setTimeout(() => {
+      console.log("[Portal] Fallback timeout — forcing navigation");
+      markPortalComplete();
+      setLocation("/dashboard");
+    }, 2000);
 
-    if (error) {
-      console.error("[Portal] Error guardando journey_state:", error);
-      setIsStarting(false);
-      return;
+    try {
+      console.log("[Portal] Writing journey_state");
+      await supabase.from("journey_state").upsert(
+        {
+          user_id: user.id,
+          intro_completed: true,
+          portal_completed: true,
+          process_started_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+    } catch (err) {
+      console.error("[Portal] Error guardando journey_state:", err);
+    } finally {
+      clearTimeout(fallbackTimer);
+      console.log("[Portal] Redirecting to /dashboard");
+      markPortalComplete();
+      setLocation("/dashboard");
     }
-
-    markPortalComplete();
-    setLocation("/dashboard");
   };
 
   return (
