@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { StoreProvider } from "@/lib/store-context";
+import { isDemoMode } from "@/lib/demo-mode";
+import { DemoBanner } from "@/components/demo-banner";
 
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
@@ -38,7 +40,9 @@ const ProtectedRoute = ({ component: Component }: { component: React.ComponentTy
 
 const AuthRoute = ({ component: Component }: { component: React.ComponentType }) => {
   const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+  const demo = isDemoMode();
 
+  if (isAuthenticated && demo) return <Redirect to="/onboarding" />;
   if (isAuthenticated && !onboardingComplete) return <Redirect to="/onboarding" />;
   if (isAuthenticated && onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
   if (isAuthenticated && onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
@@ -48,20 +52,22 @@ const AuthRoute = ({ component: Component }: { component: React.ComponentType })
 
 const OnboardingRoute = ({ component: Component }: { component: React.ComponentType }) => {
   const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+  const demo = isDemoMode();
 
   if (!isAuthenticated) return <Redirect to="/login" />;
-  if (onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
-  if (onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
+  if (!demo && onboardingComplete && !portalComplete) return <Redirect to="/ego-intro" />;
+  if (!demo && onboardingComplete && portalComplete) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
 
 const IntroRoute = ({ component: Component }: { component: React.ComponentType }) => {
   const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
+  const demo = isDemoMode();
 
   if (!isAuthenticated) return <Redirect to="/login" />;
-  if (!onboardingComplete) return <Redirect to="/onboarding" />;
-  if (portalComplete) return <Redirect to="/dashboard" />;
+  if (!onboardingComplete && !demo) return <Redirect to="/onboarding" />;
+  if (portalComplete && !demo) return <Redirect to="/dashboard" />;
 
   return <Component />;
 };
@@ -95,6 +101,7 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <DemoBanner />
             <Router />
           </WouterRouter>
           <Toaster />

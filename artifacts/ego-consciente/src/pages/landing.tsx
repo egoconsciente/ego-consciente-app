@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { shouldShowRitual, isDemoMode } from "@/lib/demo-mode";
 
 const STORAGE_KEY = "ego_ritual_seen";
 
@@ -37,8 +38,8 @@ function Triquetra({ className }: { className?: string }) {
 type Phase = "splash" | "intro" | "landing";
 
 export default function Landing() {
-  const ritualSeen = localStorage.getItem(STORAGE_KEY) === "true";
-  const [phase, setPhase] = useState<Phase>(ritualSeen ? "landing" : "splash");
+  const showRitual = shouldShowRitual();
+  const [phase, setPhase] = useState<Phase>(showRitual ? "splash" : "landing");
   const [introIndex, setIntroIndex] = useState(0);
 
   useEffect(() => {
@@ -54,14 +55,18 @@ export default function Landing() {
       return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, "true");
+      if (!isDemoMode()) {
+        localStorage.setItem(STORAGE_KEY, "true");
+      }
       setPhase("landing");
     }, 2200);
     return () => clearTimeout(timer);
   }, [phase, introIndex]);
 
   const skipRitual = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, "true");
+    if (!isDemoMode()) {
+      localStorage.setItem(STORAGE_KEY, "true");
+    }
     setPhase("landing");
   }, []);
 
