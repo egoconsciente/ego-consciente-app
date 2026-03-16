@@ -78,7 +78,7 @@ export function EgoGuideButton() {
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 md:bottom-8 right-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-[5.5rem] md:bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Abrir guía del Ego"
@@ -147,7 +147,7 @@ function EgoGuidePanel({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <h3 className="font-display text-sm font-semibold text-foreground">Ego Guía</h3>
-              <p className="text-[10px] text-muted-foreground">Asistente del proceso</p>
+              <p className="text-[10px] text-muted-foreground">Guía permanente del sistema</p>
             </div>
           </div>
           <button

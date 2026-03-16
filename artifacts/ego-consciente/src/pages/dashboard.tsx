@@ -2,9 +2,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useStore } from "@/lib/store-context";
-import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight } from "lucide-react";
+import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight, Lock } from "lucide-react";
 import { motion } from "framer-motion";
-
 
 const DAILY_PHRASES = [
   "Tu ego no es tu esencia. Es la historia que hoy organiza tu experiencia.",
@@ -49,16 +48,6 @@ const DAILY_PHRASES = [
   "El proceso no termina aquí. Aquí es donde realmente empieza.",
 ];
 
-function Triquetra({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.2" className={className}>
-      {[0, 120, 240].map((angle) => (
-        <ellipse key={angle} cx="50" cy="32" rx="16" ry="28" transform={`rotate(${angle} 50 52)`} />
-      ))}
-    </svg>
-  );
-}
-
 function PreProcessDashboard({ userName }: { userName: string }) {
   return (
     <AppLayout>
@@ -72,55 +61,93 @@ function PreProcessDashboard({ userName }: { userName: string }) {
           </p>
         </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gradient-to-br from-primary to-accent p-10 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden mb-8"
-        >
-          <div className="absolute top-0 right-0 -mr-12 -mt-12 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mb-6"
-            >
-              <Triquetra className="w-16 h-16 text-primary-foreground/60" />
-            </motion.div>
-
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">
-              Empezar mi proceso
-            </h2>
-            <p className="text-primary-foreground/70 mb-8 max-w-md leading-relaxed">
-              40 días de observación consciente. Un pensamiento, una emoción, una acción — cada día.
-            </p>
-
-            <Link
-              href="/ego-intro"
-              className="inline-flex items-center gap-3 px-10 py-5 bg-primary-foreground text-primary rounded-2xl font-semibold text-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
-            >
-              Comenzar
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-accent/10 border border-accent/20 rounded-3xl p-8"
-        >
+        <div className="bg-accent/10 border border-accent/20 rounded-3xl p-8 mb-8">
           <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
             Antes de cruzar el umbral
           </p>
           <p className="font-display text-lg text-foreground leading-relaxed italic">
             "No vengo a decirte quién eres. Vengo a mostrarte cómo se construye la historia que hoy llamas 'yo'."
           </p>
-        </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-gradient-to-br from-primary to-accent p-8 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div className="flex items-center gap-3 mb-10">
+                <SunMedium className="w-6 h-6 text-primary-foreground/80" />
+                <span className="font-medium tracking-wide uppercase text-sm text-primary-foreground/80">
+                  Tu proceso
+                </span>
+              </div>
+              <div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                  Empezar mi proceso
+                </h2>
+                <p className="text-primary-foreground/70 mb-6 leading-relaxed">
+                  40 días de observación consciente.
+                </p>
+                <Link
+                  href="/ego-intro"
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-primary-foreground text-primary rounded-2xl font-semibold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  Empezar mi proceso
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div className="bg-card border border-border p-6 rounded-3xl opacity-60 relative">
+              <div className="absolute top-4 right-4">
+                <Lock className="w-4 h-4 text-muted-foreground/50" />
+              </div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary/50">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground/70">
+                Conversación con el Ego
+              </h3>
+              <p className="text-muted-foreground/70 text-sm">
+                Disponible una vez que inicies tu proceso de observación.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-card border border-border p-6 rounded-3xl opacity-60 relative">
+                <div className="absolute top-4 right-4">
+                  <Lock className="w-4 h-4 text-muted-foreground/50" />
+                </div>
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-4 text-accent/50">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-semibold mb-1 text-foreground/70">Registro PEA</h3>
+                <p className="text-muted-foreground/70 text-xs">
+                  Pensamiento, emoción, acción — cada día.
+                </p>
+              </div>
+
+              <div className="bg-card border border-border p-6 rounded-3xl opacity-60 relative">
+                <div className="absolute top-4 right-4">
+                  <Lock className="w-4 h-4 text-muted-foreground/50" />
+                </div>
+                <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center mb-4 text-secondary-foreground/50">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-semibold mb-1 text-foreground/70">Mi progreso</h3>
+                <p className="text-muted-foreground/70 text-xs">
+                  Tu recorrido de 40 días.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

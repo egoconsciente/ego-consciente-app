@@ -43,7 +43,7 @@ export function ProcessGate() {
             href="/dashboard"
             className="px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-medium text-lg hover:bg-primary/90 transition-all duration-300"
           >
-            Volver al inicio
+            Ir a mi inicio
           </Link>
         </motion.div>
       </div>
