@@ -52,25 +52,43 @@ export default function Portal() {
 
     try {
       console.log("[Portal] Writing journey_state");
-      const { error } = await supabase.from("journey_state").upsert(
+      const now = new Date().toISOString();
+
+      const { error: journeyError } = await supabase.from("journey_state").upsert(
         {
           user_id: user.id,
           intro_completed: true,
           portal_completed: true,
-          process_started_at: new Date().toISOString(),
+          process_started_at: now,
         },
         { onConflict: "user_id" }
       );
 
-      clearTimeout(fallbackTimer);
-
-      if (error) {
-        console.error("[Portal] Supabase error:", error.message, error.code, error.details);
-        setErrorMsg(`Error al iniciar (${error.code || "desconocido"}). Revisa la consola.`);
+      if (journeyError) {
+        clearTimeout(fallbackTimer);
+        console.error("[Portal] journey_state error:", journeyError.message);
+        setErrorMsg(`Error al iniciar (${journeyError.code || "desconocido"}). Revisa la consola.`);
         setIsStarting(false);
         return;
       }
 
+      console.log("[Portal] Initializing stage 1");
+      const { error: stageError } = await supabase.from("stage_progress").upsert(
+        {
+          user_id: user.id,
+          stage_number: 1,
+          status: "in_progress",
+          started_at: now,
+          updated_at: now,
+        },
+        { onConflict: "user_id,stage_number" }
+      );
+
+      if (stageError) {
+        console.error("[Portal] stage_progress init error:", stageError.message);
+      }
+
+      clearTimeout(fallbackTimer);
       navigateToDashboard();
     } catch (err) {
       clearTimeout(fallbackTimer);
@@ -119,7 +137,7 @@ export default function Portal() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="text-lg text-muted-foreground leading-relaxed mb-4"
         >
-          Lo que sigue son 40 días de observación.
+          Lo que sigue son 40 etapas de observación.
         </motion.p>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -128,7 +146,7 @@ export default function Portal() {
           className="text-base text-muted-foreground leading-relaxed mb-12"
         >
           No vas a recibir respuestas. Vas a aprender a hacerte las preguntas
-          correctas. Cada día, un pensamiento. Una emoción. Una acción. Un paso
+          correctas. Cada etapa, un pensamiento. Una emoción. Una acción. Un paso
           mínimo congruente.
         </motion.p>
 

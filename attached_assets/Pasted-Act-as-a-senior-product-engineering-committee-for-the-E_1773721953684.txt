@@ -1,0 +1,202 @@
+Act as a senior product + engineering committee for the Ego Consciente app.
+
+Use Pro reasoning and implement directly.
+
+Important:
+- Do NOT redesign the app
+- Keep all visible copy in Spanish
+- Preserve the current auth, onboarding, demo mode, ego-intro, portal, dashboard, chat, reflection, progress, and journey features
+- Preserve the current visual identity calm, minimal, introspective
+- Do NOT connect OpenAI yet
+- Do NOT rewrite the entire flow
+- We are only implementing the real process progression layer now
+
+Context:
+The app already has:
+- splash / intro / landing
+- auth
+- onboarding
+- pre-process dashboard
+- ego-intro
+- portal
+- active dashboard
+- ego guide overlay
+- journey shell
+- chat, reflection, progress
+- journey_state table
+
+Now we need to replace the current fake/unclear “day-based” behavior with the correct product model.
+
+CORE PRODUCT DECISION
+
+The process must now work as:
+- 40 etapas
+- flexible progression
+- NOT calendar-locked
+- a user may complete more than one stage in a day
+- the next stage unlocks when the current one is completed
+- daily content still exists, but it is separate from the core stage progression
+
+This means:
+- the main process should be shown as “Etapa X de 40”
+- daily content should appear separately as “Contenido de hoy” or “Frase de hoy”
+- daily content must not block stage progression
+
+IMPLEMENTATION REQUIREMENTS
+
+1. TERMINOLOGY CHANGE
+In all active process UI:
+- replace the main progression label "Día X" with:
+  "Etapa X de 40"
+- pre-process dashboard must still say:
+  "Empezar mi proceso"
+
+2. STAGE SYSTEM
+Implement a real 40-stage progression system.
+
+Create a stage definition source, for example:
+- src/lib/stages.ts
+
+It should define 40 placeholder stages for now.
+Each stage must include at minimum:
+- stageNumber
+- title
+- shortDescription
+- estimatedMinutes
+- instructionText
+- completionHint
+
+Do NOT try to write the final deep content yet.
+Use clean placeholder structure that we can refine later.
+
+3. USER PROGRESS MODEL
+Create a user progression layer for stages.
+Prefer a dedicated table if needed, such as:
+- public.stage_progress
+
+If SQL is required, create:
+- supabase/stage_progress.sql
+
+Recommended structure:
+- user_id uuid not null references auth.users(id) on delete cascade
+- stage_number integer not null
+- status text not null
+- started_at timestamptz
+- completed_at timestamptz
+- user_confirmed_complete boolean default false
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+- primary key (user_id, stage_number)
+
+Add RLS so users only access their own rows.
+
+4. PROCESS START INITIALIZATION
+When the user officially starts the process from /portal:
+- stage 1 becomes the current unlocked stage
+- if needed, initialize stage_progress for stage 1
+- process_started_at still remains the source of truth for “the process has started”
+- do NOT re-break the working portal flow
+
+5. CURRENT STAGE LOGIC
+The app must be able to determine:
+- whether the process has started
+- what the current stage is
+- which stages are completed
+- which stage is currently available
+- which future stages are still locked
+
+6. COMPLETION RULE FOR NOW
+For this step, do NOT implement the final deep validation engine yet.
+For now, use a clean temporary completion rule:
+- a stage is completed when the user explicitly confirms completion from that stage screen
+- store that completion in stage_progress
+- immediately unlock the next stage
+- update the current stage accordingly
+
+Important:
+We will design the real “minimum information required” engine later.
+For now, build the structure cleanly so it can evolve.
+
+7. JOURNEY MAP
+Update /journey so it reflects stages, not calendar days.
+Requirements:
+- show 40 stages
+- completed stages clearly marked
+- current stage clearly marked
+- future stages locked
+- clicking a completed or current stage should open its detail / view
+- clicking a locked stage should show a gentle message in Spanish like:
+  "Esta etapa aún no está desbloqueada."
+
+8. STAGE DETAIL VIEW
+Implement a clean stage detail view.
+You may:
+- reuse /journey with a detail panel
+OR
+- add a route such as /journey/:stageNumber
+
+Each stage detail should show:
+- title
+- short description
+- estimated time
+- instructions
+- a CTA to use reflection/chat if needed
+- a clear completion button:
+  "Completar etapa"
+
+When the user completes it:
+- mark current stage completed
+- unlock the next stage
+- if stage < 40, advance current stage
+- if stage = 40, mark the process as fully completed in a simple way for now
+
+9. DASHBOARD ACTIVE STATE
+On the active dashboard:
+- show:
+  "Etapa X de 40"
+- show a card for the current stage
+- include:
+  - title
+  - short description
+  - estimated time
+  - CTA to continue stage
+- also show a separate card for:
+  "Frase de hoy"
+  or
+  "Contenido de hoy"
+
+10. DAILY CONTENT LAYER
+Add a lightweight daily content layer that does NOT block progression.
+For now, a simple daily phrase/content card is enough.
+It should be separate from the stage progression logic.
+Do not add push notifications yet.
+
+11. PROCESS GATES
+Before the process starts:
+- keep /chat, /reflection, /progress, /journey gated as already designed
+After the process starts:
+- /journey should show the stage system
+- /dashboard should show the current stage
+- /chat, /reflection, /progress should remain accessible
+
+12. DO NOT POLISH FINAL NARRATIVE YET
+Do not rewrite:
+- splash lines
+- ego-intro text
+- portal text
+This step is only structural.
+
+13. KEEP DEMO MODE WORKING
+Demo replay mode must still work with the new stage progression system.
+
+When finished, report exactly:
+
+A. Files created or modified
+B. Whether SQL must be run manually
+C. The full SQL content if needed
+D. How stage progression works now
+E. How the current stage is determined
+F. How the journey map behaves now
+G. How daily content is separated from stage progression
+H. Exact manual test plan
+I. Any blocker or warning

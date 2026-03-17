@@ -13,39 +13,39 @@ const WELCOME = "¿En qué te puedo ayudar? Puedes preguntarme cualquier cosa so
 const KNOWLEDGE: { keywords: string[]; response: string }[] = [
   {
     keywords: ["proceso", "qué es", "de qué se trata", "cómo funciona", "explicar"],
-    response: "Ego Consciente es un proceso de autoobservación de 40 días. Cada día registras un pensamiento, una emoción y una acción — lo que llamamos el marco PEA. No se trata de cambiar quién eres, sino de observar cómo opera tu sistema interior.",
+    response: "Ego Consciente es un proceso de autoobservación de 40 etapas. En cada etapa registras un pensamiento, una emoción y una acción — lo que llamamos el marco PEA. No se trata de cambiar quién eres, sino de observar cómo opera tu sistema interior. Puedes avanzar a tu propio ritmo.",
   },
   {
     keywords: ["empezar", "comenzar", "iniciar", "cómo empiezo", "start"],
-    response: "Para iniciar tu proceso, ve a la pantalla principal y presiona 'Empezar mi proceso'. Pasarás por una breve introducción del Ego Guía y luego cruzarás el umbral, que marca el inicio de tus 40 días de observación.",
+    response: "Para iniciar tu proceso, ve a la pantalla principal y presiona 'Empezar mi proceso'. Pasarás por una breve introducción del Ego Guía y luego cruzarás el umbral, que marca el inicio de tus 40 etapas de observación.",
   },
   {
     keywords: ["chat", "hablar", "conversación", "ego chat"],
-    response: "La sección de Chat es donde puedes conversar con el Ego — tu guía interior. Ahí puedes explorar tus pensamientos, emociones y acciones del día con más profundidad. El Ego te hace preguntas que te ayudan a observar sin juzgar.",
+    response: "La sección de Chat es donde puedes conversar con el Ego — tu guía interior. Ahí puedes explorar tus pensamientos, emociones y acciones con más profundidad. El Ego te hace preguntas que te ayudan a observar sin juzgar.",
   },
   {
     keywords: ["reflexión", "refleccion", "registro", "pea", "pensamiento", "emoción", "emocion", "acción", "accion"],
-    response: "El Registro PEA es tu práctica diaria. Cada día identificas: un Pensamiento dominante, la Emoción que lo acompaña y la Acción que tomaste o quieres tomar. Este registro es el corazón del proceso de observación.",
+    response: "El Registro PEA es tu práctica de observación. Identificas: un Pensamiento dominante, la Emoción que lo acompaña y la Acción que tomaste o quieres tomar. Este registro es el corazón del proceso de observación.",
   },
   {
     keywords: ["progreso", "avance", "recorrido"],
-    response: "La sección de Progreso muestra tu recorrido a lo largo de los 40 días. Ahí puedes ver qué días has completado tu registro PEA y cómo ha sido tu camino de observación.",
+    response: "La sección de Progreso muestra tu recorrido a lo largo de las 40 etapas. Ahí puedes ver cuántas etapas has completado, tu registro PEA, y cómo ha sido tu camino de observación.",
   },
   {
-    keywords: ["journey", "mapa", "viaje", "40 días", "40 dias", "fases"],
-    response: "El Mapa del Proceso muestra las 4 fases de tus 40 días: Observación (días 1-10), Reconocimiento (días 11-20), Integración (días 21-30) y Congruencia (días 31-40). Cada fase tiene un enfoque diferente en tu proceso de autoobservación.",
+    keywords: ["journey", "mapa", "viaje", "40 días", "40 dias", "40 etapas", "fases", "etapa"],
+    response: "El Mapa del Proceso muestra las 4 fases de tus 40 etapas: Observación (etapas 1-10), Reconocimiento (etapas 11-20), Integración (etapas 21-30) y Congruencia (etapas 31-40). Cada fase tiene un enfoque diferente. Puedes avanzar a tu propio ritmo — las etapas no están atadas al calendario.",
   },
   {
     keywords: ["umbral", "portal", "cruzar"],
-    response: "El Umbral es el momento simbólico donde decides comenzar tu proceso de 40 días. Es una decisión consciente de comprometerte con la observación. Una vez que lo cruzas, comienza tu Día 1.",
+    response: "El Umbral es el momento simbólico donde decides comenzar tu proceso de 40 etapas. Es una decisión consciente de comprometerte con la observación. Una vez que lo cruzas, comienza tu Etapa 1.",
   },
   {
     keywords: ["ego", "quién eres", "quien eres", "guía", "guia"],
     response: "Soy el Ego Guía — no soy tu ego personal, sino la estructura que te acompaña durante el proceso. Estoy aquí para ayudarte a navegar la aplicación y el camino de autoobservación. Con el tiempo, a medida que registres más, podré hablar más cerca de tu propia experiencia.",
   },
   {
-    keywords: ["día", "dia", "hoy", "actual"],
-    response: "Tu día actual se calcula desde el momento en que cruzaste el umbral. Cada día tienes la oportunidad de registrar tu observación PEA y conversar con el Ego. No hay presión — el proceso se adapta a tu ritmo.",
+    keywords: ["día", "dia", "hoy", "actual", "completar"],
+    response: "Tu progreso se mide en etapas, no en días. Puedes completar más de una etapa por día si lo deseas. Para completar una etapa, abre su detalle desde el mapa del proceso y presiona 'Completar etapa'. El contenido diario (frase del día) es independiente de tu avance en las etapas.",
   },
 ];
 

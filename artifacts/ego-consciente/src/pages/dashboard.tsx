@@ -2,8 +2,10 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useStore } from "@/lib/store-context";
-import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight, Lock } from "lucide-react";
+import { useStages } from "@/lib/stage-context";
+import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight, Lock, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { TOTAL_STAGES } from "@/lib/stages";
 
 const DAILY_PHRASES = [
   "Tu ego no es tu esencia. Es la historia que hoy organiza tu experiencia.",
@@ -48,6 +50,14 @@ const DAILY_PHRASES = [
   "El proceso no termina aquí. Aquí es donde realmente empieza.",
 ];
 
+function getDailyPhrase(): string {
+  const today = new Date();
+  const dayOfYear = Math.floor(
+    (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+  );
+  return DAILY_PHRASES[dayOfYear % DAILY_PHRASES.length];
+}
+
 function PreProcessDashboard({ userName }: { userName: string }) {
   return (
     <AppLayout>
@@ -90,7 +100,7 @@ function PreProcessDashboard({ userName }: { userName: string }) {
                   Empezar mi proceso
                 </h2>
                 <p className="text-primary-foreground/70 mb-6 leading-relaxed">
-                  40 días de observación consciente.
+                  40 etapas de observación consciente.
                 </p>
                 <Link
                   href="/ego-intro"
@@ -129,7 +139,7 @@ function PreProcessDashboard({ userName }: { userName: string }) {
                 </div>
                 <h3 className="text-lg font-semibold mb-1 text-foreground/70">Registro PEA</h3>
                 <p className="text-muted-foreground/70 text-xs">
-                  Pensamiento, emoción, acción — cada día.
+                  Pensamiento, emoción, acción — cada etapa.
                 </p>
               </div>
 
@@ -142,7 +152,7 @@ function PreProcessDashboard({ userName }: { userName: string }) {
                 </div>
                 <h3 className="text-lg font-semibold mb-1 text-foreground/70">Mi progreso</h3>
                 <p className="text-muted-foreground/70 text-xs">
-                  Tu recorrido de 40 días.
+                  Tu recorrido de 40 etapas.
                 </p>
               </div>
             </div>
@@ -154,9 +164,18 @@ function PreProcessDashboard({ userName }: { userName: string }) {
 }
 
 function ActiveDashboard({ userName }: { userName: string }) {
-  const { currentDay, reflections } = useStore();
-  const hasReflectedToday = reflections.some((r) => r.day === currentDay);
-  const todayPhrase = DAILY_PHRASES[(currentDay - 1) % DAILY_PHRASES.length];
+  const { reflections } = useStore();
+  const { currentStage, completedCount, getCurrentStageDefinition } = useStages();
+  const stageDef = getCurrentStageDefinition();
+  const todayPhrase = getDailyPhrase();
+  const hasReflectedToday = reflections.some((r) => {
+    const today = new Date();
+    return (
+      r.date.getFullYear() === today.getFullYear() &&
+      r.date.getMonth() === today.getMonth() &&
+      r.date.getDate() === today.getDate()
+    );
+  });
 
   return (
     <AppLayout>
@@ -172,7 +191,7 @@ function ActiveDashboard({ userName }: { userName: string }) {
 
         <div className="bg-accent/10 border border-accent/20 rounded-3xl p-8 mb-8">
           <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
-            Frase de hoy — Día {currentDay}
+            Frase de hoy
           </p>
           <p className="font-display text-lg md:text-xl text-foreground leading-relaxed italic">
             "{todayPhrase}"
@@ -183,7 +202,7 @@ function ActiveDashboard({ userName }: { userName: string }) {
           <div className="bg-gradient-to-br from-primary to-accent p-8 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 flex flex-col h-full justify-between">
-              <div className="flex items-center gap-3 mb-10">
+              <div className="flex items-center gap-3 mb-6">
                 <SunMedium className="w-6 h-6 text-primary-foreground/80" />
                 <span className="font-medium tracking-wide uppercase text-sm text-primary-foreground/80">
                   Proceso activo
@@ -191,11 +210,14 @@ function ActiveDashboard({ userName }: { userName: string }) {
               </div>
               <div>
                 <p className="text-primary-foreground/70 mb-1 text-lg">
-                  Te encuentras en el
+                  Te encuentras en la
                 </p>
-                <h2 className="font-display text-6xl font-bold tracking-tight mb-4">
-                  Día {currentDay}
+                <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-2">
+                  Etapa {currentStage} <span className="text-2xl font-medium text-primary-foreground/60">de {TOTAL_STAGES}</span>
                 </h2>
+                {stageDef && (
+                  <p className="text-primary-foreground/70 text-sm mb-4">{stageDef.title}</p>
+                )}
                 <Link
                   href="/journey"
                   className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground text-sm font-medium transition-colors"
@@ -208,28 +230,46 @@ function ActiveDashboard({ userName }: { userName: string }) {
           </div>
 
           <div className="grid grid-cols-1 gap-6">
-            <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 flex flex-col justify-between group">
-              <div>
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare className="w-6 h-6" />
+            {stageDef && (
+              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold tracking-widest uppercase text-primary">
+                    Etapa actual
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    ~{stageDef.estimatedMinutes} min
+                  </span>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  Continuar conversación
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  El Ego está listo para escucharte y ayudarte a desenredar la
-                  narrativa de hoy.
-                </p>
+                <h3 className="text-xl font-semibold mb-2">{stageDef.title}</h3>
+                <p className="text-muted-foreground text-sm mb-4">{stageDef.shortDescription}</p>
+                <Link
+                  href={`/journey/${currentStage}`}
+                  className="inline-flex items-center justify-center w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+                >
+                  Continuar etapa
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
               </div>
-              <Link
-                href="/chat"
-                className="mt-6 inline-flex items-center justify-center w-full py-3 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                Hablar con el Ego
-              </Link>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-semibold mb-1">Chat con el Ego</h3>
+                <p className="text-muted-foreground text-xs mb-4 flex-1">
+                  Explora tu narrativa.
+                </p>
+                <Link
+                  href="/chat"
+                  className="inline-flex items-center justify-center w-full py-2.5 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  Hablar con el Ego
+                </Link>
+              </div>
+
               <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
                 <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-4 text-accent group-hover:scale-110 transition-transform duration-300">
                   <BookOpen className="w-5 h-5" />
@@ -245,24 +285,27 @@ function ActiveDashboard({ userName }: { userName: string }) {
                   {hasReflectedToday ? "Ver registro" : "Registrar hoy"}
                 </Link>
               </div>
-
-              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
-                <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center mb-4 text-secondary-foreground group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">Mi progreso</h3>
-                <p className="text-muted-foreground text-xs mb-4 flex-1">
-                  {currentDay} de 40 días completados.
-                </p>
-                <Link
-                  href="/progress"
-                  className="inline-flex items-center justify-center w-full py-2.5 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary-foreground hover:text-secondary transition-colors"
-                >
-                  Ver recorrido
-                </Link>
-              </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 bg-card border border-border rounded-3xl p-6 flex items-center justify-between hover:shadow-md transition-all">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center text-secondary-foreground">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Mi progreso</h3>
+              <p className="text-muted-foreground text-xs">{completedCount} de {TOTAL_STAGES} etapas completadas</p>
+            </div>
+          </div>
+          <Link
+            href="/progress"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            Ver recorrido
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </AppLayout>

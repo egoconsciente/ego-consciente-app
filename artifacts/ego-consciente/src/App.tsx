@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { StoreProvider } from "@/lib/store-context";
+import { StageProvider } from "@/lib/stage-context";
 import { isDemoMode } from "@/lib/demo-mode";
 import { DemoBanner } from "@/components/demo-banner";
 import { ProcessGate } from "@/components/process-gate";
@@ -22,6 +23,7 @@ import Chat from "@/pages/chat";
 import Reflection from "@/pages/reflection";
 import Progress from "@/pages/progress";
 import Journey from "@/pages/journey";
+import StageDetail from "@/pages/stage-detail";
 import DemoActivate from "@/pages/demo-activate";
 
 const queryClient = new QueryClient();
@@ -66,7 +68,9 @@ const DashboardRoute = ({ component: Component }: { component: React.ComponentTy
 
   return (
     <StoreProvider>
-      <Component />
+      <StageProvider>
+        <Component />
+      </StageProvider>
     </StoreProvider>
   );
 };
@@ -87,7 +91,9 @@ const ProcessRoute = ({ component: Component }: { component: React.ComponentType
 
   return (
     <StoreProvider>
-      <Component />
+      <StageProvider>
+        <Component />
+      </StageProvider>
     </StoreProvider>
   );
 };
@@ -109,6 +115,7 @@ function Router() {
       <Route path="/reflection"><ProcessRoute component={Reflection} /></Route>
       <Route path="/progress"><ProcessRoute component={Progress} /></Route>
       <Route path="/journey"><ProcessRoute component={Journey} /></Route>
+      <Route path="/journey/:stageNumber">{(params) => <ProcessRoute component={() => <StageDetail stageNumber={Number(params.stageNumber)} />} />}</Route>
 
       <Route path="/demo" component={DemoActivate} />
       <Route component={NotFound} />

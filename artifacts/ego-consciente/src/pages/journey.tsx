@@ -1,26 +1,16 @@
 import { AppLayout } from "@/components/layout/app-layout";
-import { useStore } from "@/lib/store-context";
+import { useStages } from "@/lib/stage-context";
+import { STAGES, TOTAL_STAGES, isPhaseStart, getPhaseForStage } from "@/lib/stages";
 import { motion } from "framer-motion";
-import { Check, Lock, Circle, ArrowLeft } from "lucide-react";
+import { Check, Lock, Circle, ArrowLeft, Clock } from "lucide-react";
 import { Link } from "wouter";
 
-const TOTAL_DAYS = 40;
-
-const PHASE_LABELS: Record<number, string> = {
-  1: "Observación",
-  11: "Reconocimiento",
-  21: "Integración",
-  31: "Congruencia",
-};
-
 export default function Journey() {
-  const { currentDay, reflections } = useStore();
-  const completedDays = new Set(reflections.map((r) => r.day));
+  const { currentStage, completedCount, getStageProgress } = useStages();
 
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto p-6 lg:p-10 pt-8 pb-32">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link
             href="/dashboard"
@@ -33,119 +23,139 @@ export default function Journey() {
               Mapa del proceso
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              40 días de autoobservación
+              40 etapas de autoobservación
             </p>
           </div>
         </div>
 
-        {/* Progress summary */}
         <div className="bg-card border border-border rounded-2xl p-6 mb-8 flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Día actual</p>
-            <p className="font-display text-3xl font-bold">{currentDay}</p>
+            <p className="text-sm text-muted-foreground">Etapa actual</p>
+            <p className="font-display text-3xl font-bold">{currentStage}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Reflexiones</p>
+            <p className="text-sm text-muted-foreground">Completadas</p>
             <p className="font-display text-3xl font-bold">
-              {completedDays.size}
+              {completedCount}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Completado</p>
+            <p className="text-sm text-muted-foreground">Progreso</p>
             <p className="font-display text-3xl font-bold">
-              {Math.round((currentDay / TOTAL_DAYS) * 100)}%
+              {Math.round((completedCount / TOTAL_STAGES) * 100)}%
             </p>
           </div>
         </div>
 
-        {/* 40-day grid */}
         <div className="space-y-1">
-          {Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1).map((day) => {
-            const isPast = day < currentDay;
-            const isCurrent = day === currentDay;
-            const isFuture = day > currentDay;
-            const hasReflection = completedDays.has(day);
-            const phaseLabel = PHASE_LABELS[day];
+          {STAGES.map((stage) => {
+            const progress = getStageProgress(stage.stageNumber);
+            const isCompleted = progress.status === "completed";
+            const isCurrent = stage.stageNumber === currentStage && progress.status !== "completed";
+            const isLocked = progress.status === "locked" && stage.stageNumber !== currentStage;
+            const showPhaseLabel = isPhaseStart(stage.stageNumber);
+            const phase = getPhaseForStage(stage.stageNumber);
 
             return (
-              <div key={day}>
-                {phaseLabel && (
+              <div key={stage.stageNumber}>
+                {showPhaseLabel && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="pt-6 pb-3 pl-1"
                   >
                     <span className="text-xs font-semibold tracking-widest uppercase text-primary">
-                      {phaseLabel}
+                      {phase.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      Etapas {phase.start}–{phase.end}
                     </span>
                   </motion.div>
                 )}
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: day * 0.015 }}
-                  className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-                    isCurrent
-                      ? "bg-primary/10 border border-primary/30"
-                      : isPast
-                        ? "hover:bg-secondary/50"
-                        : "opacity-40"
-                  }`}
-                >
-                  {/* Status icon */}
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      hasReflection
-                        ? "bg-primary text-primary-foreground"
-                        : isCurrent
-                          ? "bg-primary/20 text-primary border-2 border-primary"
-                          : isFuture
-                            ? "bg-secondary text-muted-foreground"
-                            : "bg-secondary text-muted-foreground"
-                    }`}
+                {isLocked ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: stage.stageNumber * 0.01 }}
+                    className="flex items-center gap-4 px-4 py-3 rounded-xl opacity-40 cursor-pointer"
+                    onClick={() => alert("Esta etapa aún no está desbloqueada.")}
                   >
-                    {hasReflection ? (
-                      <Check className="w-4 h-4" />
-                    ) : isFuture ? (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary text-muted-foreground">
                       <Lock className="w-3 h-3" />
-                    ) : (
-                      <Circle className="w-3 h-3" />
-                    )}
-                  </div>
-
-                  {/* Day info */}
-                  <div className="flex-1">
-                    <p
-                      className={`font-medium ${
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground/50">
+                        Etapa {stage.stageNumber}
+                      </p>
+                      <p className="text-xs text-muted-foreground/50 line-clamp-1">
+                        {stage.title}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <Link href={`/journey/${stage.stageNumber}`}>
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: stage.stageNumber * 0.01 }}
+                      className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all cursor-pointer ${
                         isCurrent
-                          ? "text-primary font-semibold"
-                          : "text-foreground"
+                          ? "bg-primary/10 border border-primary/30 hover:bg-primary/15"
+                          : "hover:bg-secondary/50"
                       }`}
                     >
-                      Día {day}
-                      {isCurrent && (
-                        <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                          Hoy
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          isCompleted
+                            ? "bg-primary text-primary-foreground"
+                            : isCurrent
+                              ? "bg-primary/20 text-primary border-2 border-primary"
+                              : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Circle className="w-3 h-3" />
+                        )}
+                      </div>
 
-                  {/* Reflection indicator */}
-                  {hasReflection && (
-                    <span className="text-xs text-muted-foreground">
-                      PEA registrado
-                    </span>
-                  )}
-                  {isCurrent && !hasReflection && (
-                    <Link
-                      href="/reflection"
-                      className="text-xs text-primary font-medium hover:underline"
-                    >
-                      Registrar
-                    </Link>
-                  )}
-                </motion.div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`font-medium ${
+                            isCurrent
+                              ? "text-primary font-semibold"
+                              : "text-foreground"
+                          }`}
+                        >
+                          Etapa {stage.stageNumber}
+                          {isCurrent && (
+                            <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              Actual
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {stage.title}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isCompleted && (
+                          <span className="text-xs text-muted-foreground">
+                            Completada
+                          </span>
+                        )}
+                        {isCurrent && (
+                          <span className="inline-flex items-center gap-1 text-xs text-primary">
+                            <Clock className="w-3 h-3" />
+                            ~{stage.estimatedMinutes} min
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  </Link>
+                )}
               </div>
             );
           })}

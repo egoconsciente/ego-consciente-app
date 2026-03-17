@@ -93,26 +93,35 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 ### `artifacts/ego-consciente` (`@workspace/ego-consciente`)
 
-React + Vite web app — "Ego Consciente" Spanish-language introspective self-observation tool using the PEA (Pensamiento, Emoción, Acción) framework across a 40-day journey.
+React + Vite web app — "Ego Consciente" Spanish-language introspective self-observation tool using the PEA (Pensamiento, Emoción, Acción) framework across a 40-stage journey.
 
 - **Stack**: React, Vite, Tailwind CSS, Framer Motion, Wouter, Supabase (external)
 - **Auth**: Supabase Auth with email confirmation → `/auth/callback` handles the redirect
-- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`, `/demo`
-- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `DashboardRoute` (/dashboard — pre-process or active), `ProcessRoute` (/chat, /reflection, /progress, /journey — gated until process started)
-- **User flow**: Landing → Register → Onboarding → Dashboard (pre-process: "Empezar mi proceso") → Ego Intro → Portal ("Comenzar el proceso") → Dashboard (active: "Día X")
+- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`, `/journey/:stageNumber`, `/demo`
+- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `DashboardRoute` (/dashboard — pre-process or active), `ProcessRoute` (/chat, /reflection, /progress, /journey, /journey/:stageNumber — gated until process started)
+- **User flow**: Landing → Register → Onboarding → Dashboard (pre-process: "Empezar mi proceso") → Ego Intro → Portal ("Comenzar el proceso") → Dashboard (active: "Etapa X de 40")
 - **Pre-process state**: After onboarding, dashboard shows "Empezar mi proceso" CTA. Process pages (/chat, /reflection, /progress, /journey) show a gate message with CTA back to dashboard.
-- **Active process state**: After portal completion, dashboard shows "Día X" with full navigation. All process pages unlocked.
-- **EGO Guide**: Persistent floating triquetra button (bottom-right) on all AppLayout pages. Opens overlay with deterministic help responses about the app, process, sections, PEA framework. No AI — knowledge base only.
+- **Active process state**: After portal completion, dashboard shows "Etapa X de 40" with current stage card + daily phrase card. All process pages unlocked.
+- **Stage progression system** (`src/lib/stages.ts`, `src/lib/stage-context.tsx`):
+  - 40 etapas (stages), NOT calendar-locked — user can complete multiple per day
+  - Each stage: title, shortDescription, estimatedMinutes, instructionText, completionHint
+  - 4 phases: Observación (1-10), Reconocimiento (11-20), Integración (21-30), Congruencia (31-40)
+  - Completion: user explicitly confirms from stage detail view → next stage unlocks immediately
+  - `StageProvider` wraps DashboardRoute and ProcessRoute, provides `useStages()` hook
+  - Stage detail view at `/journey/:stageNumber` shows instructions + "Completar etapa" CTA
+  - Daily content (phrase) is separate from stage progression — uses day-of-year rotation
+- **EGO Guide**: Persistent floating triquetra button (bottom-center mobile, bottom-right desktop) on all AppLayout pages. Opens overlay with deterministic help responses about the app, process, sections, PEA framework. No AI — knowledge base only.
 - **Supabase tables** (run SQL manually in Supabase dashboard):
   - `profiles` — auto-created via trigger on signup
   - `onboarding_responses` — first-time user intake (4 questions)
   - `journey_state` — tracks intro_completed, portal_completed, process_started_at
+  - `stage_progress` — per-user per-stage progression (status: locked/in_progress/completed, timestamps, user_confirmed_complete)
   - `pea_entries` — daily PEA reflections (unique per user+day)
   - `daily_progress` — daily step tracking
   - `chat_messages` — persistent conversation with El Ego
   - `ego_memory` — single-row per user, computed understanding of user state
   - `ego_insights` — observations the Ego registers over time
-- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`
+- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`, `supabase/stage_progress.sql`
 - **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
 - **Demo Replay Mode**: Three ways to activate:
   1. Navigate to `/demo` (dedicated route — signs out, activates demo, redirects to `/`)
