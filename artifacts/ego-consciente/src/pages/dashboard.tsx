@@ -165,14 +165,16 @@ function ActiveDashboard({ userName }: { userName: string }) {
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto p-6 lg:p-10 pt-12 space-y-8">
-        <header>
-          <h1 className="font-display text-4xl lg:text-5xl font-semibold mb-3">
-            Hola, {userName}.
-          </h1>
-          <p className="text-xl text-muted-foreground font-light">
-            ¿Qué parte de ti está al mando el día de hoy?
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          className="py-4"
+        >
+          <p className="font-display text-xl md:text-2xl lg:text-[1.65rem] text-foreground leading-relaxed whitespace-pre-line">
+            {todayPhrase}
           </p>
-        </header>
+        </motion.div>
 
         <section>
           <div className="bg-gradient-to-br from-primary to-accent p-8 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden">
@@ -267,14 +269,6 @@ function ActiveDashboard({ userName }: { userName: string }) {
             </Link>
           </div>
 
-          <div className="bg-accent/10 border border-accent/20 rounded-3xl p-6">
-            <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
-              Frase de hoy
-            </p>
-            <p className="font-display text-lg text-foreground leading-relaxed italic">
-              "{todayPhrase}"
-            </p>
-          </div>
         </section>
       </div>
     </AppLayout>

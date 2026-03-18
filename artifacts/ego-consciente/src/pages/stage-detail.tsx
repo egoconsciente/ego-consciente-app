@@ -113,6 +113,12 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
+          <div className="py-2">
+            <p className="font-display text-lg md:text-xl text-foreground/90 leading-relaxed whitespace-pre-line">
+              {stageDef.egoIntro}
+            </p>
+          </div>
+
           <div className="bg-card border border-border rounded-2xl p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-muted-foreground" />

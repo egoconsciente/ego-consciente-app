@@ -104,12 +104,13 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
 - **Active process state**: After portal completion, dashboard shows "Etapa X de 40" with current stage card + daily phrase card. All process pages unlocked.
 - **Stage progression system** (`src/lib/stages.ts`, `src/lib/stage-context.tsx`):
   - 40 etapas (stages), NOT calendar-locked — user can complete multiple per day
-  - Each stage: title, shortDescription, estimatedMinutes, instructionText, completionHint
+  - Each stage: title, shortDescription, estimatedMinutes, egoIntro (2-4 line Ego opening), instructionText, completionHint
   - 4 phases: Observación (1-10), Reconocimiento (11-20), Integración (21-30), Congruencia (31-40)
   - Completion: user explicitly confirms from stage detail view → next stage unlocks immediately
   - `StageProvider` wraps DashboardRoute and ProcessRoute, provides `useStages()` hook
   - Stage detail view at `/journey/:stageNumber` shows instructions + "Completar etapa" CTA
-  - Daily content (phrase) is separate from stage progression — uses day-of-year rotation
+  - Stage detail view opens with a short Ego introduction (egoIntro) before instructions — calm, reflective, 3-line text
+  - Daily content (phrase) is separate from stage progression — uses day-of-year rotation, displayed as Ego opening voice at top of active dashboard
 - **EGO Guide**: Persistent floating triquetra button (bottom-center mobile, bottom-right desktop) on all AppLayout pages. Opens overlay with deterministic help responses about the app, process, sections, PEA framework. No AI — knowledge base only.
 - **Supabase tables** (run SQL manually in Supabase dashboard):
   - `profiles` — auto-created via trigger on signup
