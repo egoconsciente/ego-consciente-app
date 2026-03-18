@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls, type PanInfo } from "framer-motion";
 import { X, Send } from "lucide-react";
 
 interface GuideMessage {
@@ -76,29 +76,38 @@ export function EgoGuideButton() {
 
   return (
     <>
-      <motion.button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-[5.5rem] md:bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        aria-label="Abrir guía del Ego"
-      >
-        <Triquetra className="w-7 h-7" />
-      </motion.button>
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-[5.25rem] md:bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            aria-label="Abrir guía del Ego"
+          >
+            <Triquetra className="w-7 h-7" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
-        {isOpen && <EgoGuidePanel onClose={() => setIsOpen(false)} />}
+        {isOpen && <EgoGuideSheet onClose={() => setIsOpen(false)} />}
       </AnimatePresence>
     </>
   );
 }
 
-function EgoGuidePanel({ onClose }: { onClose: () => void }) {
+function EgoGuideSheet({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<GuideMessage[]>([
     { id: "welcome", role: "ego", text: WELCOME },
   ]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const dragControls = useDragControls();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -124,6 +133,12 @@ function EgoGuidePanel({ onClose }: { onClose: () => void }) {
     setInput("");
   };
 
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (info.offset.y > 100) {
+      onClose();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -134,13 +149,25 @@ function EgoGuidePanel({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
-        initial={{ y: "100%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative z-10 w-full max-w-md bg-background border border-border rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[80vh] md:max-h-[70vh]"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        drag="y"
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={handleDragEnd}
+        className="relative z-10 w-full max-w-md bg-background border border-border rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[85vh] md:max-h-[70vh]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div
+          className="flex flex-col items-center pt-3 pb-1 md:hidden cursor-grab active:cursor-grabbing"
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <div className="w-10 h-1 bg-border rounded-full" />
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
               <Triquetra className="w-4 h-4 text-primary" />
@@ -175,7 +202,7 @@ function EgoGuidePanel({ onClose }: { onClose: () => void }) {
           <div ref={bottomRef} />
         </div>
 
-        <div className="px-4 py-3 border-t border-border">
+        <div className="px-4 py-3 border-t border-border pb-safe">
           <div className="flex items-center gap-2">
             <input
               type="text"

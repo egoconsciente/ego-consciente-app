@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useStore } from "@/lib/store-context";
 import { useStages } from "@/lib/stage-context";
-import { MessageSquare, BookOpen, TrendingUp, SunMedium, Map, ArrowRight, Lock, Clock } from "lucide-react";
+import { BookOpen, TrendingUp, SunMedium, Map, ArrowRight, Lock, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { TOTAL_STAGES } from "@/lib/stages";
 
@@ -114,21 +114,6 @@ function PreProcessDashboard({ userName }: { userName: string }) {
           </motion.div>
 
           <div className="grid grid-cols-1 gap-6">
-            <div className="bg-card border border-border p-6 rounded-3xl opacity-60 relative">
-              <div className="absolute top-4 right-4">
-                <Lock className="w-4 h-4 text-muted-foreground/50" />
-              </div>
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary/50">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground/70">
-                Conversación con el Ego
-              </h3>
-              <p className="text-muted-foreground/70 text-sm">
-                Disponible una vez que inicies tu proceso de observación.
-              </p>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="bg-card border border-border p-6 rounded-3xl opacity-60 relative">
                 <div className="absolute top-4 right-4">
@@ -179,8 +164,8 @@ function ActiveDashboard({ userName }: { userName: string }) {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto p-6 lg:p-10 pt-12">
-        <header className="mb-12">
+      <div className="max-w-5xl mx-auto p-6 lg:p-10 pt-12 space-y-8">
+        <header>
           <h1 className="font-display text-4xl lg:text-5xl font-semibold mb-3">
             Hola, {userName}.
           </h1>
@@ -189,26 +174,17 @@ function ActiveDashboard({ userName }: { userName: string }) {
           </p>
         </header>
 
-        <div className="bg-accent/10 border border-accent/20 rounded-3xl p-8 mb-8">
-          <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
-            Frase de hoy
-          </p>
-          <p className="font-display text-lg md:text-xl text-foreground leading-relaxed italic">
-            "{todayPhrase}"
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section>
           <div className="bg-gradient-to-br from-primary to-accent p-8 rounded-3xl text-primary-foreground shadow-lg shadow-primary/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col h-full justify-between">
-              <div className="flex items-center gap-3 mb-6">
-                <SunMedium className="w-6 h-6 text-primary-foreground/80" />
-                <span className="font-medium tracking-wide uppercase text-sm text-primary-foreground/80">
-                  Proceso activo
-                </span>
-              </div>
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
               <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <SunMedium className="w-6 h-6 text-primary-foreground/80" />
+                  <span className="font-medium tracking-wide uppercase text-sm text-primary-foreground/80">
+                    Proceso activo
+                  </span>
+                </div>
                 <p className="text-primary-foreground/70 mb-1 text-lg">
                   Te encuentras en la
                 </p>
@@ -216,97 +192,90 @@ function ActiveDashboard({ userName }: { userName: string }) {
                   Etapa {currentStage} <span className="text-2xl font-medium text-primary-foreground/60">de {TOTAL_STAGES}</span>
                 </h2>
                 {stageDef && (
-                  <p className="text-primary-foreground/70 text-sm mb-4">{stageDef.title}</p>
+                  <p className="text-primary-foreground/70 text-sm">{stageDef.title}</p>
                 )}
-                <Link
-                  href="/journey"
-                  className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground text-sm font-medium transition-colors"
-                >
-                  <Map className="w-4 h-4" />
-                  Ver mapa del proceso
-                </Link>
               </div>
+              <Link
+                href="/journey"
+                className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground text-sm font-medium transition-colors shrink-0"
+              >
+                <Map className="w-4 h-4" />
+                Ver mapa del proceso
+              </Link>
             </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 gap-6">
-            {stageDef && (
-              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-xs font-semibold tracking-widest uppercase text-primary">
-                    Etapa actual
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3.5 h-3.5" />
-                    ~{stageDef.estimatedMinutes} min
-                  </span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{stageDef.title}</h3>
-                <p className="text-muted-foreground text-sm mb-4">{stageDef.shortDescription}</p>
-                <Link
-                  href={`/journey/${currentStage}`}
-                  className="inline-flex items-center justify-center w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-                >
-                  Continuar etapa
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {stageDef && (
+            <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-xs font-semibold tracking-widest uppercase text-primary">
+                  Etapa actual
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  ~{stageDef.estimatedMinutes} min
+                </span>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">Chat con el Ego</h3>
-                <p className="text-muted-foreground text-xs mb-4 flex-1">
-                  Explora tu narrativa.
-                </p>
-                <Link
-                  href="/chat"
-                  className="inline-flex items-center justify-center w-full py-2.5 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  Hablar con el Ego
-                </Link>
-              </div>
-
-              <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
-                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-4 text-accent group-hover:scale-110 transition-transform duration-300">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">Registro PEA</h3>
-                <p className="text-muted-foreground text-xs mb-4 flex-1">
-                  Identifica el patrón.
-                </p>
-                <Link
-                  href="/reflection"
-                  className={`inline-flex items-center justify-center w-full py-2.5 rounded-lg font-medium text-sm transition-colors ${hasReflectedToday ? "bg-background border border-border text-foreground" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
-                >
-                  {hasReflectedToday ? "Ver registro" : "Registrar hoy"}
-                </Link>
-              </div>
+              <h3 className="text-xl font-semibold mb-2">{stageDef.title}</h3>
+              <p className="text-muted-foreground text-sm mb-4">{stageDef.shortDescription}</p>
+              <Link
+                href={`/journey/${currentStage}`}
+                className="inline-flex items-center justify-center w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+              >
+                Continuar etapa
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
             </div>
+          )}
+
+          <div className="bg-card border border-border p-6 rounded-3xl hover:shadow-xl hover:border-primary/20 transition-all duration-300 group flex flex-col">
+            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-4 text-accent group-hover:scale-110 transition-transform duration-300">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">Registro PEA</h3>
+            <p className="text-muted-foreground text-xs mb-4 flex-1">
+              Identifica el patrón.
+            </p>
+            <Link
+              href="/reflection"
+              className={`inline-flex items-center justify-center w-full py-2.5 rounded-lg font-medium text-sm transition-colors ${hasReflectedToday ? "bg-background border border-border text-foreground" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+            >
+              {hasReflectedToday ? "Ver registro" : "Registrar hoy"}
+            </Link>
           </div>
-        </div>
+        </section>
 
-        <div className="mt-6 bg-card border border-border rounded-3xl p-6 flex items-center justify-between hover:shadow-md transition-all">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center text-secondary-foreground">
-              <TrendingUp className="w-5 h-5" />
+        <section className="space-y-4">
+          <div className="bg-card border border-border rounded-3xl p-6 flex items-center justify-between hover:shadow-md transition-all">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-secondary-foreground/10 rounded-xl flex items-center justify-center text-secondary-foreground">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Mi progreso</h3>
+                <p className="text-muted-foreground text-xs">{completedCount} de {TOTAL_STAGES} etapas completadas</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold">Mi progreso</h3>
-              <p className="text-muted-foreground text-xs">{completedCount} de {TOTAL_STAGES} etapas completadas</p>
-            </div>
+            <Link
+              href="/progress"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Ver recorrido
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <Link
-            href="/progress"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Ver recorrido
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+
+          <div className="bg-accent/10 border border-accent/20 rounded-3xl p-6">
+            <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
+              Frase de hoy
+            </p>
+            <p className="font-display text-lg text-foreground leading-relaxed italic">
+              "{todayPhrase}"
+            </p>
+          </div>
+        </section>
       </div>
     </AppLayout>
   );
