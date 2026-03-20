@@ -1,20 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
-import { useStages } from "@/lib/stage-context";
+import { useStages, validateReflection, type ValidationResult, type MissingField } from "@/lib/stage-context";
 import { getStage, TOTAL_STAGES, getPhaseForStage } from "@/lib/stages";
-import { motion } from "framer-motion";
-import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, ArrowRight, AlertCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
+
+function Triquetra({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
+      {[0, 120, 240].map((angle) => (
+        <ellipse key={angle} cx="50" cy="32" rx="16" ry="28" transform={`rotate(${angle} 50 52)`} />
+      ))}
+    </svg>
+  );
+}
 
 export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [, setLocation] = useLocation();
-  const { currentStage, getStageProgress, completeStage } = useStages();
+  const { currentStage, getStageProgress, completeStageWithData, saveReflection } = useStages();
   const [isCompleting, setIsCompleting] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+  const [interventionMissing, setInterventionMissing] = useState<MissingField[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
 
   const stageDef = getStage(stageNumber);
   const progress = getStageProgress(stageNumber);
   const phase = getPhaseForStage(stageNumber);
+
+  const [thought, setThought] = useState("");
+  const [emotion, setEmotion] = useState("");
+  const [action, setAction] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const prevStageRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevStageRef.current !== stageNumber) {
+      setThought(progress.thought || "");
+      setEmotion(progress.emotion || "");
+      setAction(progress.action || "");
+      setNotes(progress.notes || "");
+      setInterventionMissing([]);
+      setJustCompleted(false);
+      prevStageRef.current = stageNumber;
+    }
+  }, [stageNumber, progress.thought, progress.emotion, progress.action, progress.notes]);
+
+  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const activeSavesRef = useRef(0);
+
+  const debouncedSave = useCallback(
+    (field: string, value: string) => {
+      if (saveTimersRef.current[field]) clearTimeout(saveTimersRef.current[field]);
+      saveTimersRef.current[field] = setTimeout(async () => {
+        activeSavesRef.current++;
+        setIsSaving(true);
+        await saveReflection(stageNumber, { [field]: value });
+        activeSavesRef.current--;
+        if (activeSavesRef.current === 0) {
+          setIsSaving(false);
+          setSaveStatus("saved");
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        }
+      }, 800);
+    },
+    [stageNumber, saveReflection]
+  );
+
+  const handleFieldChange = (field: string, value: string, setter: (v: string) => void) => {
+    setter(value);
+    debouncedSave(field, value);
+    if (interventionMissing.length > 0) {
+      setInterventionMissing((prev) => prev.filter((m) => m.field !== field));
+    }
+  };
+
+  const flushPendingSaves = useCallback(async () => {
+    for (const key of Object.keys(saveTimersRef.current)) {
+      clearTimeout(saveTimersRef.current[key]);
+      delete saveTimersRef.current[key];
+    }
+    await saveReflection(stageNumber, { thought, emotion, action, notes });
+  }, [stageNumber, thought, emotion, action, notes, saveReflection]);
 
   if (!stageDef) {
     return (
@@ -74,13 +142,26 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   }
 
   const handleComplete = async () => {
+    const localData = { thought, emotion, action, notes };
+    const validation = validateReflection(localData);
+    if (!validation.valid) {
+      setInterventionMissing(validation.missing);
+      return;
+    }
+
     setIsCompleting(true);
-    const success = await completeStage(stageNumber);
-    if (success) {
+    await flushPendingSaves();
+    const result = await completeStageWithData(stageNumber, localData);
+    if (result.success) {
       setJustCompleted(true);
+      setInterventionMissing([]);
+    } else if (result.validation && !result.validation.valid) {
+      setInterventionMissing(result.validation.missing);
     }
     setIsCompleting(false);
   };
+
+  const highlightField = (field: string) => interventionMissing.some((m) => m.field === field);
 
   return (
     <AppLayout>
@@ -144,6 +225,135 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
               {stageDef.completionHint}
             </p>
           </div>
+
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg font-semibold">Tu observación</h3>
+              <AnimatePresence>
+                {isSaving && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Guardando...
+                  </motion.span>
+                )}
+                {saveStatus === "saved" && !isSaving && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-xs text-primary"
+                  >
+                    Guardado
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Pensamiento
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                ¿Qué pensamiento apareció o se repitió?
+              </p>
+              <textarea
+                value={thought}
+                onChange={(e) => handleFieldChange("thought", e.target.value, setThought)}
+                placeholder="Escribe el pensamiento que observaste..."
+                rows={3}
+                disabled={isCompleted}
+                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("thought") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Emoción
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                ¿Qué sentiste? Nombra la emoción lo más específica posible.
+              </p>
+              <textarea
+                value={emotion}
+                onChange={(e) => handleFieldChange("emotion", e.target.value, setEmotion)}
+                placeholder="Nombra la emoción que acompañó ese pensamiento..."
+                rows={2}
+                disabled={isCompleted}
+                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("emotion") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Acción o evitación
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                ¿Qué hiciste o qué evitaste hacer?
+              </p>
+              <textarea
+                value={action}
+                onChange={(e) => handleFieldChange("action", e.target.value, setAction)}
+                placeholder="Describe lo que hiciste o dejaste de hacer..."
+                rows={2}
+                disabled={isCompleted}
+                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("action") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Nota adicional <span className="text-muted-foreground font-normal">(opcional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => handleFieldChange("notes", e.target.value, setNotes)}
+                placeholder="Algo más que quieras registrar..."
+                rows={2}
+                disabled={isCompleted}
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {interventionMissing.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-6 space-y-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                    <Triquetra className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-display text-sm font-semibold text-foreground mb-1">
+                      Ego Guía
+                    </p>
+                    <p className="text-sm text-foreground/80 leading-relaxed">
+                      Antes de avanzar, hay algo que tu sistema aún no ha terminado de mostrar.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pl-11">
+                  {interventionMissing.map((item) => (
+                    <div key={item.field} className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                      <p className="text-sm text-foreground/70 leading-relaxed">
+                        {item.message}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link

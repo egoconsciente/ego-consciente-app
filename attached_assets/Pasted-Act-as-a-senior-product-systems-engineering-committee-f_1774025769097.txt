@@ -1,0 +1,180 @@
+Act as a senior product + systems + engineering committee for the Ego Consciente app.
+
+Important:
+- Do NOT redesign the app
+- Keep all visible copy in Spanish
+- Preserve auth, onboarding, demo mode, ego-intro, portal, dashboard, chat, reflection, progress, journey, and the current 40-stage progression
+- Do NOT connect OpenAI yet
+- Do NOT rewrite the whole stage system
+- We are ONLY patching the stage completion logic
+
+CONTEXT
+
+The app already has:
+- stage progression
+- stage detail view
+- stage_progress table
+- active dashboard
+- journey map
+- EGO guide overlay
+- daily content card
+
+Current issue:
+The user can be on stage 1 but the system does not have a clear human-centered completion flow.
+We do NOT want completion to be a blind click.
+We want:
+- there is still a "Completar etapa" button
+- BUT clicking it must validate whether the stage has enough minimum information
+- if information is missing, the Ego must step in and ask for what is missing
+- only after enough information exists should the stage complete and the next one unlock
+
+CORE PRODUCT RULE
+
+A stage is NOT completed just because the user clicked a button.
+A stage is completed when the system has enough minimum information for that stage.
+
+For this implementation version, we will use a universal minimum structure for all stages:
+- pensamiento
+- emoción
+- acción (or avoidance / what the user did or did not do)
+
+We are NOT implementing full AOE scoring yet.
+We are implementing the minimum data capture + completion validation system.
+
+IMPLEMENTATION REQUIREMENTS
+
+1. PATCH THE EXISTING stage_progress TABLE
+Do not replace the table.
+If needed, create a SQL patch file:
+
+supabase/stage_progress_completion_patch.sql
+
+Add these columns if they do not exist:
+- thought text
+- emotion text
+- action text
+- notes text
+- completion_ready boolean default false
+- completion_missing jsonb default '[]'::jsonb
+- ego_followup_count integer default 0
+
+Keep existing RLS working.
+
+2. STAGE DETAIL PAGE
+On the stage detail page, add a simple structured reflection section for the current stage:
+
+Fields:
+- Pensamiento
+- Emoción
+- Acción o evitación
+- Nota adicional (optional)
+
+Keep the UI simple and elegant.
+Do NOT redesign the page radically.
+
+3. AUTOSAVE / SAVE DRAFT
+When the user writes in those fields, persist them to the current stage_progress row.
+If autosave is easy, use autosave.
+If not, add a clean "Guardar" or save-on-blur mechanism.
+Do not make the user lose input.
+
+4. COMPLETION VALIDATION
+When the user clicks "Completar etapa", run validation.
+
+Minimum valid condition for now:
+- thought exists and is not empty
+- emotion exists and is not empty
+- action exists and is not empty
+
+Also reject obviously too-thin placeholders such as:
+- very short one-word filler if not meaningful
+- empty spaces
+- repeated punctuation only
+
+You do NOT need AI for this.
+Use deterministic validation for now.
+
+5. IF VALIDATION PASSES
+If enough information exists:
+- set completion_ready = true
+- set completion_missing = []
+- mark current stage as completed
+- set completed_at
+- unlock next stage
+- move next stage to active / in_progress
+- navigate or offer CTA to next stage
+
+6. IF VALIDATION FAILS
+If information is insufficient:
+- do NOT complete the stage
+- do NOT unlock the next one
+- the Ego must step in
+
+7. EGO INTERVENTION MODE
+Implement a lightweight “Ego intervention” block when validation fails.
+
+This can be:
+- inline panel on the stage page
+OR
+- reuse the existing EGO guide overlay in a special completion-assist mode
+
+The Ego should say something like:
+"Antes de avanzar, hay algo que tu sistema aún no ha terminado de mostrar."
+
+Then generate deterministic follow-up prompts based on what is missing:
+
+If thought missing:
+- "Antes de avanzar, necesito una frase clara de lo que estabas pensando en esa situación."
+
+If emotion missing:
+- "¿Qué sentiste exactamente? Evita algo muy general si puedes. Nombra la emoción más real."
+
+If action missing:
+- "¿Qué hiciste o qué evitaste hacer en ese momento?"
+
+If multiple missing:
+- ask them one by one in a clean order
+
+8. SAVE EGO FOLLOW-UP RESULTS
+When the user answers the follow-up, save the answer into the missing field in stage_progress.
+Increase ego_followup_count by 1 each time the Ego had to intervene.
+
+9. RE-RUN VALIDATION
+After the user answers the missing info:
+- validate again
+- if complete, unlock next stage
+- if still incomplete, continue gently with one more follow-up
+- do not create an infinite loop
+
+10. UX COPY
+Keep copy in Spanish.
+Use this conceptual behavior:
+- The user is not being blocked by a cold validator
+- The Ego is helping them complete what is still unclear
+
+11. DASHBOARD / JOURNEY
+Do not redesign them.
+Only make sure they reflect the new completion logic correctly:
+- a stage only appears completed if validation really passed
+- next stage unlocks only after real completion
+
+12. DO NOT IMPLEMENT YET
+Do NOT implement:
+- full AOE inference
+- scoring engine
+- adaptive multi-stage editorial logic
+- book generation
+- stage-specific deep content design
+
+This patch is ONLY:
+minimum required information + Ego follow-up + proper unlock.
+
+OUTPUT REQUIRED
+
+A. Files modified
+B. Full SQL patch content if one is needed
+C. Exact validation rule used
+D. How Ego intervention works
+E. How stage completion works now
+F. Manual test plan
+G. Any warning

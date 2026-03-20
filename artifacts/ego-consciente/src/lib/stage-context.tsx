@@ -3,13 +3,36 @@ import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { TOTAL_STAGES, type StageDefinition, getStage } from "./stages";
 
+export interface StageReflection {
+  thought: string;
+  emotion: string;
+  action: string;
+  notes: string;
+}
+
 export interface StageProgress {
   stageNumber: number;
   status: "locked" | "in_progress" | "completed";
   startedAt: string | null;
   completedAt: string | null;
   userConfirmedComplete: boolean;
+  thought: string | null;
+  emotion: string | null;
+  action: string | null;
+  notes: string | null;
+  completionReady: boolean;
+  completionMissing: string[];
+  egoFollowupCount: number;
 }
+
+export interface MissingField {
+  field: "thought" | "emotion" | "action";
+  message: string;
+}
+
+export type ValidationResult =
+  | { valid: true }
+  | { valid: false; missing: MissingField[] };
 
 interface StageContextType {
   stages: StageProgress[];
@@ -18,7 +41,9 @@ interface StageContextType {
   isLoading: boolean;
   getCurrentStageDefinition: () => StageDefinition | undefined;
   getStageProgress: (stageNumber: number) => StageProgress;
-  completeStage: (stageNumber: number) => Promise<boolean>;
+  completeStageWithData: (stageNumber: number, data: StageReflection) => Promise<{ success: boolean; validation?: ValidationResult }>;
+  saveReflection: (stageNumber: number, data: Partial<StageReflection>) => Promise<boolean>;
+  recordValidationFailure: (stageNumber: number, missing: string[]) => Promise<void>;
   isProcessComplete: boolean;
   reload: () => Promise<void>;
 }
@@ -31,7 +56,53 @@ const DEFAULT_PROGRESS: StageProgress = {
   startedAt: null,
   completedAt: null,
   userConfirmedComplete: false,
+  thought: null,
+  emotion: null,
+  action: null,
+  notes: null,
+  completionReady: false,
+  completionMissing: [],
+  egoFollowupCount: 0,
 };
+
+function isValidText(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (trimmed.length < 3) return false;
+  if (/^[.\-_,;:!?¡¿\s]+$/.test(trimmed)) return false;
+  if (/^(.)\1+$/.test(trimmed)) return false;
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 1 && trimmed.length < 4) return false;
+  return true;
+}
+
+export function validateReflection(data: StageReflection): ValidationResult {
+  const missing: MissingField[] = [];
+
+  if (!isValidText(data.thought)) {
+    missing.push({
+      field: "thought",
+      message: "Antes de avanzar, necesito una frase clara de lo que estabas pensando en esa situación.",
+    });
+  }
+
+  if (!isValidText(data.emotion)) {
+    missing.push({
+      field: "emotion",
+      message: "¿Qué sentiste exactamente? Evita algo muy general si puedes. Nombra la emoción más real.",
+    });
+  }
+
+  if (!isValidText(data.action)) {
+    missing.push({
+      field: "action",
+      message: "¿Qué hiciste o qué evitaste hacer en ese momento?",
+    });
+  }
+
+  if (missing.length > 0) return { valid: false, missing };
+  return { valid: true };
+}
 
 export function StageProvider({ children }: { children: React.ReactNode }) {
   const { user, portalComplete } = useAuth();
@@ -59,18 +130,19 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const mapped: StageProgress[] = (data || []).map((row: {
-      stage_number: number;
-      status: string;
-      started_at: string | null;
-      completed_at: string | null;
-      user_confirmed_complete: boolean;
-    }) => ({
-      stageNumber: row.stage_number,
+    const mapped: StageProgress[] = (data || []).map((row: Record<string, unknown>) => ({
+      stageNumber: row.stage_number as number,
       status: row.status as StageProgress["status"],
-      startedAt: row.started_at,
-      completedAt: row.completed_at,
-      userConfirmedComplete: row.user_confirmed_complete,
+      startedAt: (row.started_at as string) || null,
+      completedAt: (row.completed_at as string) || null,
+      userConfirmedComplete: (row.user_confirmed_complete as boolean) || false,
+      thought: (row.thought as string) || null,
+      emotion: (row.emotion as string) || null,
+      action: (row.action as string) || null,
+      notes: (row.notes as string) || null,
+      completionReady: (row.completion_ready as boolean) || false,
+      completionMissing: (row.completion_missing as string[]) || [],
+      egoFollowupCount: (row.ego_followup_count as number) || 0,
     }));
 
     setStages(mapped);
@@ -116,40 +188,133 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
     return getStage(currentStage);
   }, [currentStage]);
 
-  const completeStage = useCallback(
-    async (stageNumber: number): Promise<boolean> => {
+  const saveReflection = useCallback(
+    async (stageNumber: number, data: Partial<StageReflection>): Promise<boolean> => {
       if (!user) return false;
 
-      if (stageNumber !== currentStage) {
-        console.warn("[StageContext] Cannot complete stage", stageNumber, "— current is", currentStage);
+      const updatePayload: Record<string, unknown> = {
+        user_id: user.id,
+        stage_number: stageNumber,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (data.thought !== undefined) updatePayload.thought = data.thought;
+      if (data.emotion !== undefined) updatePayload.emotion = data.emotion;
+      if (data.action !== undefined) updatePayload.action = data.action;
+      if (data.notes !== undefined) updatePayload.notes = data.notes;
+
+      const { error } = await supabase
+        .from("stage_progress")
+        .upsert(updatePayload, { onConflict: "user_id,stage_number" });
+
+      if (error) {
+        console.error("[StageContext] Error saving reflection:", error);
         return false;
       }
+
+      setStages((prev) => {
+        const exists = prev.some((s) => s.stageNumber === stageNumber);
+        if (exists) {
+          return prev.map((s) =>
+            s.stageNumber === stageNumber
+              ? {
+                  ...s,
+                  thought: data.thought !== undefined ? (data.thought || null) : s.thought,
+                  emotion: data.emotion !== undefined ? (data.emotion || null) : s.emotion,
+                  action: data.action !== undefined ? (data.action || null) : s.action,
+                  notes: data.notes !== undefined ? (data.notes || null) : s.notes,
+                }
+              : s
+          );
+        }
+        return [
+          ...prev,
+          {
+            ...DEFAULT_PROGRESS,
+            stageNumber,
+            thought: data.thought || null,
+            emotion: data.emotion || null,
+            action: data.action || null,
+            notes: data.notes || null,
+          },
+        ];
+      });
+
+      return true;
+    },
+    [user]
+  );
+
+  const recordValidationFailure = useCallback(
+    async (stageNumber: number, missing: string[]): Promise<void> => {
+      if (!user) return;
 
       const progress = stages.find((s) => s.stageNumber === stageNumber);
-      if (progress && progress.status === "completed") {
-        console.warn("[StageContext] Stage", stageNumber, "is already completed");
-        return false;
-      }
 
-      const now = new Date().toISOString();
-
-      const { error: completeError } = await supabase
+      await supabase
         .from("stage_progress")
         .upsert(
           {
             user_id: user.id,
             stage_number: stageNumber,
+            completion_ready: false,
+            completion_missing: missing,
+            ego_followup_count: (progress?.egoFollowupCount || 0) + 1,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,stage_number" }
+        );
+    },
+    [user, stages]
+  );
+
+  const completeStageWithData = useCallback(
+    async (stageNumber: number, data: StageReflection): Promise<{ success: boolean; validation?: ValidationResult }> => {
+      if (!user) return { success: false };
+
+      if (stageNumber !== currentStage) {
+        console.warn("[StageContext] Cannot complete stage", stageNumber, "— current is", currentStage);
+        return { success: false };
+      }
+
+      const progress = stages.find((s) => s.stageNumber === stageNumber);
+      if (progress && progress.status === "completed") {
+        console.warn("[StageContext] Stage", stageNumber, "is already completed");
+        return { success: false };
+      }
+
+      const validation = validateReflection(data);
+      if (!validation.valid) {
+        const missingFields = validation.missing.map((m) => m.field);
+        await recordValidationFailure(stageNumber, missingFields);
+        return { success: false, validation };
+      }
+
+      const now = new Date().toISOString();
+
+      const { error: saveError } = await supabase
+        .from("stage_progress")
+        .upsert(
+          {
+            user_id: user.id,
+            stage_number: stageNumber,
+            thought: data.thought,
+            emotion: data.emotion,
+            action: data.action,
+            notes: data.notes,
             status: "completed",
             completed_at: now,
             user_confirmed_complete: true,
+            completion_ready: true,
+            completion_missing: [],
             updated_at: now,
           },
           { onConflict: "user_id,stage_number" }
         );
 
-      if (completeError) {
-        console.error("[StageContext] Error completing stage:", completeError);
-        return false;
+      if (saveError) {
+        console.error("[StageContext] Error completing stage:", saveError);
+        return { success: false };
       }
 
       if (stageNumber < TOTAL_STAGES) {
@@ -172,9 +337,9 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       }
 
       await loadStages();
-      return true;
+      return { success: true };
     },
-    [user, currentStage, stages, loadStages]
+    [user, currentStage, stages, recordValidationFailure, loadStages]
   );
 
   return (
@@ -186,7 +351,9 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         getCurrentStageDefinition,
         getStageProgress,
-        completeStage,
+        completeStageWithData,
+        saveReflection,
+        recordValidationFailure,
         isProcessComplete,
         reload: loadStages,
       }}

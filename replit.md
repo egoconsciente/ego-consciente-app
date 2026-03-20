@@ -106,7 +106,7 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
   - 40 etapas (stages), NOT calendar-locked — user can complete multiple per day
   - Each stage: title, shortDescription, estimatedMinutes, egoIntro (2-4 line Ego opening), instructionText, completionHint
   - 4 phases: Observación (1-10), Reconocimiento (11-20), Integración (21-30), Congruencia (31-40)
-  - Completion: user explicitly confirms from stage detail view → next stage unlocks immediately
+  - Completion: user must fill PEA reflection (pensamiento/emoción/acción) inline on stage detail → validated deterministically (min length, no filler) → Ego intervention panel shows missing fields with guidance → only after all 3 fields valid does "Completar etapa" succeed → next stage unlocks
   - `StageProvider` wraps DashboardRoute and ProcessRoute, provides `useStages()` hook
   - Stage detail view at `/journey/:stageNumber` shows instructions + "Completar etapa" CTA
   - Stage detail view opens with a short Ego introduction (egoIntro) before instructions — calm, reflective, 3-line text
@@ -116,13 +116,13 @@ React + Vite web app — "Ego Consciente" Spanish-language introspective self-ob
   - `profiles` — auto-created via trigger on signup
   - `onboarding_responses` — first-time user intake (4 questions)
   - `journey_state` — tracks intro_completed, portal_completed, process_started_at
-  - `stage_progress` — per-user per-stage progression (status: locked/in_progress/completed, timestamps, user_confirmed_complete)
+  - `stage_progress` — per-user per-stage progression (status: locked/in_progress/completed, timestamps, user_confirmed_complete, thought/emotion/action/notes PEA reflection, completion_ready, completion_missing, ego_followup_count)
   - `pea_entries` — daily PEA reflections (unique per user+day)
   - `daily_progress` — daily step tracking
   - `chat_messages` — persistent conversation with El Ego
   - `ego_memory` — single-row per user, computed understanding of user state
   - `ego_insights` — observations the Ego registers over time
-- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`, `supabase/stage_progress.sql`
+- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`, `supabase/stage_progress.sql`, `supabase/stage_progress_completion_patch.sql`
 - **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
 - **Demo Replay Mode**: Three ways to activate:
   1. Navigate to `/demo` (dedicated route — signs out, activates demo, redirects to `/`)
