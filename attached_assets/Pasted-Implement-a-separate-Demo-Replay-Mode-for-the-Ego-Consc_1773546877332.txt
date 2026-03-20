@@ -1,0 +1,85 @@
+Implement a separate Demo Replay Mode for the Ego Consciente app.
+
+Important:
+- Do NOT change the normal real-user experience
+- Do NOT redesign the UI
+- Keep all visible text in Spanish
+- Keep the current auth, onboarding, ego-intro, portal, dashboard, chat, reflection, progress, Supabase and route guards working
+- Do NOT connect OpenAI yet
+
+Problem to solve:
+Right now the app only supports the real user flow.
+That means once the user has already seen the ritual / intro / onboarding / portal, the app correctly skips them on later visits.
+
+But we also need a separate DEMO REPLAY MODE for the product owner / designer, so the full experience can be replayed from the beginning every time without affecting real users.
+
+Goal:
+Create a demo-only replay flow that lets me restart the full first-time journey on demand.
+
+Required behavior:
+
+1. Keep the normal production behavior exactly as it is:
+   - first-time real users see the ritual once
+   - returning real users do not repeat it
+   - onboarding and portal state continue to persist normally
+
+2. Add a new demo replay mode that is ONLY activated when:
+   - the URL contains ?demo=1
+   OR
+   - a localStorage flag like ego_demo_replay = true is present
+
+3. In demo replay mode, the app should behave as if it is starting from zero for route-flow purposes:
+   - show splash / Triquetra
+   - show intro lines
+   - show landing
+   - allow register/login
+   - continue through onboarding
+   - continue through ego-intro
+   - continue through portal
+   - continue to dashboard
+
+4. Important:
+Do NOT require deleting real database rows to make the replay work.
+Instead, in demo replay mode:
+   - bypass the normal “already completed” redirects for onboarding / ego-intro / portal
+   - keep using upsert for onboarding_responses
+   - on portal completion, upsert journey_state and reset process_started_at = now() so Day 1 starts again
+
+5. Add a hidden developer-only control visible only in demo replay mode:
+   - label in Spanish: "Reiniciar demo"
+   - when pressed:
+     - clear ritual-related localStorage keys
+     - keep demo replay active
+     - sign out current user
+     - redirect to /
+   This should let me immediately replay the entire app again.
+
+6. Add another helper, if needed:
+   - "Salir del modo demo"
+   which removes the demo replay flag and returns to normal app behavior
+
+7. Preserve all current route guards for normal users.
+Only demo replay mode should alter the routing logic.
+
+8. Keep the current visual experience intact.
+No redesign.
+
+9. If useful, create a small helper utility like:
+   - isDemoReplayMode()
+   - resetDemoReplay()
+   - shouldBypassCompletedFlow()
+
+10. Make sure demo replay mode works for:
+   - new browser sessions
+   - already authenticated users
+   - users who already completed onboarding and portal before
+
+When finished, report exactly:
+
+A. Files modified
+B. How demo replay mode is detected
+C. Which route guards changed
+D. How normal users behave now
+E. How demo replay users behave now
+F. Exact manual test plan
+G. Any blocker or warning

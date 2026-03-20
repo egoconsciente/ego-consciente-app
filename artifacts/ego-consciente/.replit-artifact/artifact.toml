@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Ego Consciente"
+version = "1.0.0"
+id = "artifacts/ego-consciente"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 26202
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/ego-consciente run dev"
+
+[services.env]
+PORT = "26202"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/ego-consciente", "run", "build"]
+publicDir = "artifacts/ego-consciente/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

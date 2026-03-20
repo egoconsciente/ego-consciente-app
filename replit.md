@@ -1,0 +1,136 @@
+# Workspace
+
+## Overview
+
+pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+
+## Stack
+
+- **Monorepo tool**: pnpm workspaces
+- **Node.js version**: 24
+- **Package manager**: pnpm
+- **TypeScript version**: 5.9
+- **API framework**: Express 5
+- **Database**: PostgreSQL + Drizzle ORM
+- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **API codegen**: Orval (from OpenAPI spec)
+- **Build**: esbuild (CJS bundle)
+
+## Structure
+
+```text
+artifacts-monorepo/
+├── artifacts/              # Deployable applications
+│   └── api-server/         # Express API server
+├── lib/                    # Shared libraries
+│   ├── api-spec/           # OpenAPI spec + Orval codegen config
+│   ├── api-client-react/   # Generated React Query hooks
+│   ├── api-zod/            # Generated Zod schemas from OpenAPI
+│   └── db/                 # Drizzle ORM schema + DB connection
+├── scripts/                # Utility scripts (single workspace package)
+│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
+├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
+├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
+├── tsconfig.json           # Root TS project references
+└── package.json            # Root package with hoisted devDeps
+```
+
+## TypeScript & Composite Projects
+
+Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+
+- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
+- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
+- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+
+## Root Scripts
+
+- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
+- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+
+## Packages
+
+### `artifacts/api-server` (`@workspace/api-server`)
+
+Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+
+- Entry: `src/index.ts` — reads `PORT`, starts Express
+- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
+- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Depends on: `@workspace/db`, `@workspace/api-zod`
+- `pnpm --filter @workspace/api-server run dev` — run the dev server
+- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
+- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+
+### `lib/db` (`@workspace/db`)
+
+Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+
+- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
+- `src/schema/index.ts` — barrel re-export of all models
+- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
+- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
+- Exports: `.` (pool, db, schema), `./schema` (schema only)
+
+Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+
+### `lib/api-spec` (`@workspace/api-spec`)
+
+Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
+
+1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
+2. `lib/api-zod/src/generated/` — Zod schemas
+
+Run codegen: `pnpm --filter @workspace/api-spec run codegen`
+
+### `lib/api-zod` (`@workspace/api-zod`)
+
+Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+
+### `lib/api-client-react` (`@workspace/api-client-react`)
+
+Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+
+### `artifacts/ego-consciente` (`@workspace/ego-consciente`)
+
+React + Vite web app — "Ego Consciente" Spanish-language introspective self-observation tool using the PEA (Pensamiento, Emoción, Acción) framework across a 40-stage journey.
+
+- **Stack**: React, Vite, Tailwind CSS, Framer Motion, Wouter, Supabase (external)
+- **Auth**: Supabase Auth with email confirmation → `/auth/callback` handles the redirect
+- **Route structure**: `/` (landing+splash), `/login`, `/register`, `/auth/callback`, `/onboarding`, `/ego-intro`, `/portal`, `/dashboard`, `/chat`, `/reflection`, `/progress`, `/journey`, `/journey/:stageNumber`, `/demo`
+- **Route guards**: `AuthRoute` (login/register), `OnboardingRoute` (/onboarding), `IntroRoute` (/ego-intro, /portal), `DashboardRoute` (/dashboard — pre-process or active), `ProcessRoute` (/chat, /reflection, /progress, /journey, /journey/:stageNumber — gated until process started)
+- **User flow**: Landing → Register → Onboarding → Dashboard (pre-process: "Empezar mi proceso") → Ego Intro → Portal ("Comenzar el proceso") → Dashboard (active: "Etapa X de 40")
+- **Pre-process state**: After onboarding, dashboard shows "Empezar mi proceso" CTA. Process pages (/chat, /reflection, /progress, /journey) show a gate message with CTA back to dashboard.
+- **Active process state**: After portal completion, dashboard shows "Etapa X de 40" with current stage card + daily phrase card. All process pages unlocked.
+- **Stage progression system** (`src/lib/stages.ts`, `src/lib/stage-context.tsx`):
+  - 40 etapas (stages), NOT calendar-locked — user can complete multiple per day
+  - Each stage: title, shortDescription, estimatedMinutes, egoIntro (2-4 line Ego opening), instructionText, completionHint
+  - 4 phases: Observación (1-10), Reconocimiento (11-20), Integración (21-30), Congruencia (31-40)
+  - Completion: user explicitly confirms from stage detail view → next stage unlocks immediately
+  - `StageProvider` wraps DashboardRoute and ProcessRoute, provides `useStages()` hook
+  - Stage detail view at `/journey/:stageNumber` shows instructions + "Completar etapa" CTA
+  - Stage detail view opens with a short Ego introduction (egoIntro) before instructions — calm, reflective, 3-line text
+  - Daily content (phrase) is separate from stage progression — uses day-of-year rotation, displayed as Ego opening voice at top of active dashboard
+- **EGO Guide**: Persistent floating triquetra button (bottom-center mobile, bottom-right desktop) on all AppLayout pages. Opens overlay with deterministic help responses about the app, process, sections, PEA framework. No AI — knowledge base only.
+- **Supabase tables** (run SQL manually in Supabase dashboard):
+  - `profiles` — auto-created via trigger on signup
+  - `onboarding_responses` — first-time user intake (4 questions)
+  - `journey_state` — tracks intro_completed, portal_completed, process_started_at
+  - `stage_progress` — per-user per-stage progression (status: locked/in_progress/completed, timestamps, user_confirmed_complete)
+  - `pea_entries` — daily PEA reflections (unique per user+day)
+  - `daily_progress` — daily step tracking
+  - `chat_messages` — persistent conversation with El Ego
+  - `ego_memory` — single-row per user, computed understanding of user state
+  - `ego_insights` — observations the Ego registers over time
+- **SQL files**: `supabase/schema.sql`, `supabase/onboarding_schema.sql`, `supabase/onboarding_patch.sql`, `supabase/ego_engine_v1.sql`, `supabase/journey_state.sql`, `supabase/stage_progress.sql`
+- **Ego Engine** (`src/lib/ego-engine.ts`): deterministic context-based response engine (no AI yet). Fetches user context (onboarding, PEA entries, profile), computes ego_memory state, generates contextual responses in three modes: Reflect, Clarify, Step
+- **Demo Replay Mode**: Three ways to activate:
+  1. Navigate to `/demo` (dedicated route — signs out, activates demo, redirects to `/`)
+  2. Add `?demo=1` to any URL (backward compat — same behavior)
+  3. Click "Ver demo completo" button on landing page (dev environments only)
+  All methods: set `localStorage.ego_demo_replay`, clear ritual keys, sign out, force restart at `/`. Bypasses "already completed" redirects for onboarding/ego-intro/portal, always shows splash ritual, shows a top banner with "Reiniciar demo" and "Salir del modo demo". Button only visible in dev environments (localhost, .replit.dev, or Vite DEV mode). Does NOT affect normal users.
+- **Key env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (exposed via Vite `envPrefix`)
+
+### `scripts` (`@workspace/scripts`)
+
+Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

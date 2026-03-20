@@ -1,0 +1,110 @@
+Act as a committee composed of:
+- startup product manager
+- senior software architect
+- Supabase integration specialist
+- React + Vite engineer
+- mobile UX designer
+- QA/debugging lead
+- Guardian of the Ego Consciente method
+
+Use Pro reasoning and implement directly.
+Do not explain first.
+
+Current known situation:
+- The app uses React + Vite
+- Supabase auth is connected
+- Auth callback route already exists
+- Current routes must remain intact:
+  /, /login, /register, /auth/callback, /onboarding, /dashboard, /chat, /reflection, /progress
+- The app structure is not broken
+- The current blocker is onboarding
+
+Current onboarding bugs:
+1. On step 4 ("¿Cuánto tiempo puedes dedicar al día?"), clicking "Comenzar mi proceso" shows:
+   "Hubo un problema al guardar. Inténtalo de nuevo."
+2. On step 3 ("¿Qué te cuesta más hoy?"), the mobile UI is broken and the options render like an overlapping dropdown/popover instead of clean selectable buttons/cards.
+
+Critical constraints:
+- Do NOT redesign the app
+- Do NOT change the calm visual style
+- Keep all visible copy in Spanish
+- Do NOT touch OpenAI yet
+- Do NOT remove auth/onboarding/callback logic
+- Do NOT remove or change the existing route structure
+- Preserve the Ego Consciente tone and method
+
+Your job:
+Diagnose and fix the onboarding implementation robustly.
+
+Tasks:
+
+1. Audit the current onboarding code path end-to-end:
+   - onboarding UI state
+   - auth/session availability
+   - Supabase client usage
+   - payload being sent
+   - upsert call
+   - redirect after save
+
+2. Determine the exact root cause of the step 4 save failure.
+
+3. Verify the expected Supabase table and fields for onboarding_responses:
+   - user_id
+   - reason
+   - incongruence_area
+   - difficulty
+   - daily_time
+   - created_at
+
+4. Verify whether the frontend payload matches those exact names.
+If not, fix the mismatch.
+
+5. Ensure the save logic uses the authenticated user's id correctly and safely.
+The final submit must not run unless a valid authenticated user exists.
+
+6. Use upsert keyed by user_id.
+If the current implementation may hit an UPDATE path, make sure the DB policy supports it.
+
+7. If the database schema or policies need adjustment, generate a minimal manual SQL patch file:
+   supabase/onboarding_patch.sql
+
+The SQL patch must be safe to rerun and use:
+- CREATE TABLE IF NOT EXISTS only if absolutely needed
+- DROP POLICY IF EXISTS
+- CREATE POLICY for SELECT / INSERT / UPDATE
+
+8. Add development-safe logging:
+   - log the onboarding payload before save
+   - log the Supabase response/error after save
+   - keep logs readable
+   - do not expose secrets
+
+9. Improve the runtime UX of step 4:
+   - show loading state while saving
+   - disable the final button while save is in progress
+   - show a clearer temporary development-friendly error if save fails
+
+10. Fix the step 3 UI bug:
+   - replace any broken dropdown/popover rendering
+   - use explicit selectable buttons/cards like the rest of onboarding
+   - ensure the layout is mobile-safe
+   - ensure footer buttons are always visible and not overlapped
+
+11. Preserve the onboarding logic:
+   - first successful access with no onboarding row → /onboarding
+   - after successful onboarding save → /dashboard
+   - if onboarding already exists → no onboarding again
+
+12. Do not touch unrelated pages unless absolutely necessary.
+
+13. After fixing, run/build the app and verify it works.
+
+When finished, report exactly in Spanish:
+
+A. Causa raíz exacta del bug de guardado
+B. Archivos modificados
+C. Si necesito correr SQL manualmente
+D. El SQL completo, solo si hace falta
+E. Qué bug visual se corrigió
+F. Plan de prueba manual exacto
+G. Riesgos pendientes, si existe alguno

@@ -1,0 +1,98 @@
+Act as a senior product + UX + engineering committee for the Ego Consciente app.
+
+We are NOT doing narrative polish yet.
+We are doing a structural alignment pass to better match the intended product experience.
+
+Important:
+- Keep all visible copy in Spanish
+- Do NOT redesign the whole app
+- Preserve auth, onboarding, demo mode, journey_state, portal flow, chat, reflection, progress, and journey
+- Do NOT connect OpenAI yet
+- Do NOT add new SQL unless absolutely necessary
+- Do NOT break the current start-process sequence:
+  pre-process dashboard → /ego-intro → /portal → active dashboard
+
+Current state:
+The app already has:
+- post-onboarding redirect to /dashboard
+- pre-process vs active dashboard logic
+- process gate for /chat, /reflection, /progress, /journey
+- persistent EGO guide overlay
+- portal start flow
+- demo replay mode
+
+Goal of this patch:
+Make the pre-process dashboard and the persistent EGO guide match the intended product vision more closely.
+
+Product alignment requirements:
+
+1. PRE-PROCESS DASHBOARD SHOULD FEEL LIKE THE REAL HOME
+Right now the pre-process dashboard feels too reduced / too separate.
+Adjust it so that:
+- it keeps as much of the normal dashboard structure as possible
+- it still feels like the real app home
+- but the top primary state clearly says:
+  "Empezar mi proceso"
+- do NOT show "Día 1" yet
+- do NOT make it feel like an empty waiting room
+- the user should feel:
+  "I am already inside the system, but I have not officially started yet"
+
+2. KEEP THE MAIN DASHBOARD CONTENT AS MUCH AS POSSIBLE
+On the pre-process dashboard:
+- preserve the core visual layout as much as possible
+- if some sections should not be fully usable yet, show them in a preview / disabled / soft-gated way
+- do NOT remove everything except one card
+- keep it elegant and calm
+
+3. PERSISTENT EGO BUTTON POSITION
+Move the persistent EGO guide button to a more central bottom position on mobile.
+Desired behavior:
+- bottom center, above the bottom nav
+- if exact center causes layout conflicts, place it slightly centered but still clearly not bottom-right
+- keep it floating and always available on app pages
+
+4. EGO GUIDE SHOULD FEEL LIKE A SYSTEM PRESENCE
+Keep it as an overlay/drawer/chat panel, but make sure the first message clearly frames it as:
+- Ego Guía
+- guía permanente del sistema
+- available to explain the app, the process, the sections, and how to move through the experience
+
+Use this opening message or something very close in Spanish:
+"¿En qué te puedo ayudar? Puedes preguntarme cualquier cosa sobre la aplicación, el proceso o cómo avanzar dentro de él."
+
+5. PRE-PROCESS DASHBOARD CTA
+The main CTA from the pre-process dashboard should clearly say:
+"Empezar mi proceso"
+or
+"Comenzar mi proceso"
+Choose the version that matches the UI best, but keep it consistent everywhere.
+
+6. PROCESS GATE UX
+For /chat, /reflection, /progress, and /journey before the process starts:
+- keep the gate behavior
+- but make the CTA language cleaner and more aligned
+- preferred CTA:
+  "Volver al inicio"
+or
+  "Ir a mi inicio"
+Choose the cleaner one and use it consistently
+
+7. DO NOT TOUCH NARRATIVE SCREENS YET
+Do not rewrite:
+- splash lines
+- ego-intro paragraphs
+- portal copy
+This patch is only about structural alignment and interface feel.
+
+8. DEMO MODE MUST KEEP WORKING
+All these changes must still work in demo replay mode.
+
+When finished, report exactly:
+A. Files modified
+B. What changed in pre-process dashboard
+C. Where the EGO button is positioned now
+D. What changed in the process gate UX
+E. Whether demo mode still works
+F. Exact manual test plan
+G. Any blocker or warning

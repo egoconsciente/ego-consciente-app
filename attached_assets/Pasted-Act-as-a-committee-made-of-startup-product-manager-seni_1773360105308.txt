@@ -1,0 +1,111 @@
+Act as a committee made of:
+- startup product manager
+- senior software architect
+- Replit full-stack engineer
+- Supabase integration specialist
+- UX designer for reflective wellness apps
+- Guardian of the Ego Consciente canon
+- security and QA lead
+
+Your job is to implement the next correct step for the Ego Consciente app.
+
+Context:
+This app is already visually built.
+The Supabase environment variables are already configured:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+
+Important product rules:
+- Preserve all current Spanish copy and visual design
+- Do not redesign the UI
+- Do not change the calm, introspective tone
+- Do not connect OpenAI yet
+- Do not add unnecessary features
+- Do not diagnose or label users anywhere
+
+Your goal:
+Turn the current mock app into a real authenticated MVP with persistence.
+
+First:
+Inspect the current codebase and detect the framework.
+
+If the app is built with Next.js:
+- implement Supabase using the current recommended SSR-style setup
+- use @supabase/supabase-js and @supabase/ssr
+- create browser and server clients
+- use cookie-based auth/session handling
+
+If the app is not Next.js:
+- adapt cleanly using @supabase/supabase-js
+- keep the implementation simple and production-minded
+
+Implement all of this:
+
+1. Install the required Supabase packages
+2. Configure Supabase client utilities
+3. Replace mock login with real email/password sign in
+4. Replace mock register with real email/password sign up
+5. Add logout functionality
+6. Persist authenticated session state
+7. Protect these pages so unauthenticated users are redirected to login:
+   - dashboard
+   - chat
+   - PEA reflection
+   - progress
+
+8. Create a SQL schema file at:
+   supabase/schema.sql
+
+The schema must include:
+
+profiles
+- id uuid primary key linked to auth.users
+- created_at timestamptz default now()
+
+pea_entries
+- id uuid primary key
+- user_id uuid
+- day_number integer
+- thought text
+- emotion text
+- action text
+- created_at timestamptz default now()
+
+daily_progress
+- id uuid primary key
+- user_id uuid
+- day_number integer
+- step_text text
+- completed boolean default false
+- created_at timestamptz default now()
+
+Requirements for the schema:
+- enable Row Level Security
+- users can only read/write their own rows
+- add a trigger/function to create a profile row when a new auth user is created
+
+App behavior:
+9. Save PEA reflections into pea_entries
+10. Load user progress from daily_progress
+11. Keep the current Spanish text and design exactly the same
+12. Add basic loading and error states
+13. Keep mobile-first responsiveness intact
+
+Important:
+Do not fake completion.
+If SQL must be run manually in Supabase, say so clearly.
+If something in the current codebase blocks the integration, explain it clearly.
+
+When finished, stop and report back with exactly this format:
+
+A. Framework detected
+B. Files created or modified
+C. Whether I need to run SQL manually
+D. The full SQL content
+E. Exact manual test plan:
+   1. sign up
+   2. sign in
+   3. save PEA entry
+   4. verify progress
+   5. log out
+F. Any blocker or warning

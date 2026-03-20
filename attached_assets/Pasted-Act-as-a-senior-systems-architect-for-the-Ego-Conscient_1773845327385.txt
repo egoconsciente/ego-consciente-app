@@ -1,0 +1,190 @@
+Act as a senior systems architect for the Ego Consciente app.
+
+We are NOT redesigning anything.
+We are activating the real progression system using the existing structure.
+
+Important:
+- Keep all visible copy in Spanish
+- Do NOT redesign UI
+- Do NOT break auth, onboarding, demo mode, ego-intro, portal, dashboard, chat, reflection, progress, or journey
+- Do NOT connect OpenAI yet
+- Do NOT rewrite the app
+- Only implement the real stage progression engine
+
+CONTEXT
+
+The app already has:
+- journey_state
+- onboarding_responses
+- pea_entries
+- dashboard
+- journey map
+- chat
+- reflection
+- progress
+- ego guide
+
+The system already has a fully defined 40-stage model (AOE system).
+We must now connect the app to a real progression system.
+
+CORE PRODUCT RULE
+
+Progress is NOT time-based.
+Progress is stage-based.
+A stage unlocks ONLY when the current one is completed.
+
+We are implementing a minimal but correct version of this.
+
+---
+
+IMPLEMENTATION
+
+1. CREATE STAGE PROGRESS TABLE
+
+Create a new SQL file:
+
+supabase/stage_progress.sql
+
+Schema:
+
+- user_id uuid not null references auth.users(id) on delete cascade
+- stage_number integer not null
+- status text not null default 'locked'
+- started_at timestamptz
+- completed_at timestamptz
+- user_confirmed_complete boolean default false
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+
+Primary key:
+(user_id, stage_number)
+
+Add RLS:
+users can only read and write their own rows
+
+---
+
+2. INITIALIZE STAGES ON PROCESS START
+
+When the user completes /portal:
+
+- create 40 rows in stage_progress for that user
+- stage 1 = status "active"
+- stages 2–40 = status "locked"
+
+---
+
+3. DEFINE STAGE STATES
+
+Each stage must have:
+
+- locked
+- active
+- completed
+
+---
+
+4. COMPLETION LOGIC (INITIAL VERSION)
+
+For now:
+- a stage is completed when user presses:
+  "Completar etapa"
+
+When completed:
+- mark current stage as completed
+- unlock next stage
+- set next stage as active
+
+NO TIME LOCKING
+
+---
+
+5. UPDATE DASHBOARD
+
+On dashboard:
+
+If process_started_at exists:
+
+- show:
+  "Etapa X de 40"
+
+- show current stage card:
+  - title
+  - short description
+  - estimated time
+  - button:
+    "Continuar etapa"
+
+---
+
+6. UPDATE JOURNEY MAP
+
+/journey must now:
+
+- display 40 stages
+- completed = visually marked
+- active = highlighted
+- locked = disabled
+
+If user clicks locked stage:
+show:
+"Esta etapa aún no está desbloqueada."
+
+---
+
+7. CREATE STAGE DETAIL VIEW
+
+Route:
+ /stage/:stageNumber
+
+Each stage must display:
+
+- stage number
+- title
+- short description
+- estimated time
+- instructions
+- CTA:
+  "Completar etapa"
+
+---
+
+8. DAILY CONTENT (LIGHT)
+
+Add simple card in dashboard:
+
+"Frase de hoy"
+
+Static for now.
+Separate from stages.
+
+---
+
+9. DO NOT IMPLEMENT YET
+
+- adaptive questioning
+- scoring engine
+- AOE inference
+- book generation
+
+This is ONLY structural.
+
+---
+
+10. KEEP EVERYTHING ELSE WORKING
+
+- demo mode must still work
+- chat must still work
+- reflection must still work
+
+---
+
+OUTPUT REQUIRED
+
+A. Files created
+B. SQL content
+C. How stages initialize
+D. How unlocking works
+E. How dashboard shows stage
+F. Manual test plan
+G. Any warning
