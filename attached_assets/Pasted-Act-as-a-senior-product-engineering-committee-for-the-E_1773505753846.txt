@@ -1,0 +1,112 @@
+Act as a senior product + engineering committee for the Ego Consciente app.
+
+Use Pro reasoning and implement directly.
+
+Important:
+- Keep the current auth, onboarding, dashboard, chat, reflection, progress, and Supabase integration working
+- Do not redesign the whole app
+- Keep the current visual identity calm, minimal and introspective
+- Keep all visible text in Spanish
+- Do not connect OpenAI yet
+- Do not break any existing routes
+
+Goal:
+Implement the next correct product layer for Ego Consciente:
+the entry ritual + first-time user journey shell + 40-day process shell.
+
+Concept to implement:
+This app should feel like a threshold into a guided identity process.
+
+New users and returning users must experience the app differently.
+
+Requirements:
+
+1. Add a first-time entry ritual before the main app experience:
+   A. A splash screen with the Triquetra symbol centered
+      - soft fade in/out or subtle breathing animation
+      - duration around 2–3 seconds
+   B. Then show a short sequence of powerful intro lines, one at a time, similar in style to the current app
+      Example style:
+      - "Nos dijeron que el ego era el enemigo."
+      - "Que había que silenciarlo."
+      - "Pero casi nadie explicó cómo funciona."
+      - "Hoy puedes empezar a descubrirlo."
+   C. Then continue to login/register if unauthenticated
+
+2. Differentiate user types:
+   - If user is new and has not completed the first ritual flow, show the full ritual
+   - If user is authenticated but has not completed onboarding, send to onboarding
+   - If user completed onboarding but has not completed the Ego introduction + portal flow, show that next
+   - If user is returning and already completed the intro/portal, go directly to dashboard
+
+3. Add a post-onboarding narrative introduction from the Ego Guide:
+   This is not the user's personal ego yet.
+   It is the universal Ego Guide.
+   It should explain in Spanish:
+   - who it is
+   - why it is here
+   - that it will help the user discover their own ego
+   - that each question, exercise, and reflection opens another door in that discovery
+   - that the system is gathering what is needed to later speak more closely from the user's own ego
+   Tone:
+   intimate, calm, precise, non-grandiose, reflective
+
+4. Add a “portal / umbral” screen after the Ego introduction:
+   - should feel like the start of the journey
+   - include a CTA like:
+     "Comenzar el proceso"
+   - after pressing it, the user enters the dashboard/day 1 experience
+
+5. Create the 40-day process shell:
+   - do not define all final content yet
+   - do create the structural shell for 40 days
+   - add a simple journey map or process view showing Day 1 to Day 40
+   - current day should be visible
+   - locked/future days can appear visually but not be fully usable yet
+   - the goal is to make the 40-day process feel real, even if content is placeholder for now
+
+6. Add a small daily reflective phrase system in the dashboard:
+   - not push notifications yet
+   - just a “Frase de hoy” card for now
+   - use concepts aligned with Ego Consciente
+   - example:
+     "Tu ego no es tu esencia. Es la historia que hoy organiza tu experiencia."
+   - make it feel like a future notification system foundation
+
+7. Add state persistence so the app knows:
+   - whether the user has completed the splash/intro ritual
+   - whether the user has completed onboarding
+   - whether the user has completed the Ego introduction/portal
+   - their current day in the 40-day process
+
+8. If needed, create a new Supabase table such as journey_state with fields like:
+   - user_id
+   - intro_completed
+   - portal_completed
+   - current_day
+   - process_started_at
+   - created_at
+   - updated_at
+
+9. Keep the route architecture intact, but add any new routes needed for:
+   - splash / intro
+   - Ego introduction
+   - portal / process start
+   - 40-day journey map
+
+10. Do not change the chat behavior yet beyond preserving current functionality.
+
+11. Make the UX feel like:
+   - a threshold
+   - a guided passage
+   - a beginning of a deeper process
+
+When finished, report exactly:
+
+A. Files created or modified
+B. New routes added
+C. New state/data model added
+D. How new user vs returning user flow works now
+E. How the 40-day shell works
+F. Exact manual test plan
+G. Any blocker or warning

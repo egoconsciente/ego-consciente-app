@@ -1,0 +1,115 @@
+Build a Spanish-language web app called “Ego Consciente”.
+
+Goal:
+Create the first MVP shell of a reflective self-observation app where “the Ego” speaks as a narrator and helps the user observe internal patterns without diagnosing or labeling them.
+
+Core product principles:
+- This is not therapy.
+- The app must not diagnose the user.
+- The app must never label the user.
+- Avoid phrases like “you are X”.
+- Prefer language like “tu sistema tiende a…”.
+- The core framework is PEA:
+  - Pensamiento
+  - Emoción
+  - Acción
+- The user progresses through a 40-day journey.
+- The experience should feel calm, introspective, minimal, elegant, and emotionally safe.
+
+Important scope rule:
+For this first version, build the interface, navigation, structure, and mock functionality first.
+Use mock data and mock chat responses if needed.
+Do not require external APIs yet.
+Keep the project easy to run.
+
+Tech requirements:
+- Use Next.js + TypeScript + Tailwind CSS
+- Mobile-first responsive design
+- Clean folder structure
+- Reusable components
+- Keep the code simple and maintainable
+- Avoid overengineering
+
+Pages to build:
+1. Landing / welcome page
+2. Login page
+3. Register page
+4. Main dashboard
+5. Chat page with the Ego
+6. Daily PEA reflection page
+7. Progress page showing current day out of 40
+
+Design direction:
+- Premium introspective wellness style
+- Warm neutral colors
+- Soft spacing
+- Elegant typography
+- Minimal UI
+- Clear CTA buttons
+- Calm visual hierarchy
+
+All visible UI copy must be in Spanish.
+
+Content examples to include:
+
+Landing headline:
+“No vengo a decirte quién eres.
+Vengo a mostrarte cómo se construye la historia que hoy llamas ‘yo’.”
+
+Landing subtext:
+“Ego Consciente es un proceso de autoobservación.
+Aquí no vienes a recibir una etiqueta.
+Vienes a recuperar claridad.”
+
+Primary CTA:
+“Iniciar proceso”
+
+Dashboard sections:
+- “Continuar conversación”
+- “Registro diario”
+- “Mi progreso”
+- “Día actual”
+
+PEA form labels:
+- “Pensamiento”
+- “Emoción”
+- “Acción”
+
+Progress examples:
+- “Día 7 de 40”
+- “Tu paso mínimo de hoy”
+- “Última reflexión”
+
+Chat requirements:
+- Show messages from “Ego” and the user
+- Include an input field and send button
+- Seed 4–6 example mock Ego messages in Spanish
+- The Ego voice must sound reflective, intimate, clear, safe and non-moralizing
+- For V1, use mock chat responses only
+
+Example Ego messages:
+- “No soy tu enemigo. Pero tampoco soy tu esencia. Soy una función.”
+- “Cuéntame algo: ¿qué pensaste, qué sentiste y qué hiciste hoy?”
+- “No quiero etiquetarte. Quiero ayudarte a observar tu patrón.”
+- “Cuando tu sistema se tensa, ¿qué intenta proteger?”
+- “Hoy no busques perfección. Busca un paso mínimo congruente.”
+
+Functional requirements for V1:
+- Navigation between all pages
+- Mock login/register flow
+- Local state or mock data for PEA entries
+- Basic progress display
+- Working chat UI with mock responses
+- Good mobile experience
+
+Deliverables:
+- A run-ready project
+- Reusable components
+- Clean file organization
+- A short README explaining the project structure
+- A short “next steps” section in the README for:
+  1. Supabase auth/data
+  2. OpenAI chat integration
+  3. 40-day persistence
+
+Please generate the project now.
