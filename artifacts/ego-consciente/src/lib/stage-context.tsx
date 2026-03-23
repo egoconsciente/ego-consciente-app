@@ -290,54 +290,63 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         return { success: false, validation };
       }
 
-      const now = new Date().toISOString();
+      try {
+        const now = new Date().toISOString();
 
-      const { error: saveError } = await supabase
-        .from("stage_progress")
-        .upsert(
-          {
-            user_id: user.id,
-            stage_number: stageNumber,
-            thought: data.thought,
-            emotion: data.emotion,
-            action: data.action,
-            notes: data.notes,
-            status: "completed",
-            completed_at: now,
-            user_confirmed_complete: true,
-            completion_ready: true,
-            completion_missing: [],
-            updated_at: now,
-          },
-          { onConflict: "user_id,stage_number" }
-        );
-
-      if (saveError) {
-        console.error("[StageContext] Error completing stage:", saveError);
-        return { success: false };
-      }
-
-      if (stageNumber < TOTAL_STAGES) {
-        const { error: unlockError } = await supabase
+        const { error: saveError } = await supabase
           .from("stage_progress")
           .upsert(
             {
               user_id: user.id,
-              stage_number: stageNumber + 1,
-              status: "in_progress",
-              started_at: now,
+              stage_number: stageNumber,
+              thought: data.thought,
+              emotion: data.emotion,
+              action: data.action,
+              notes: data.notes,
+              status: "completed",
+              completed_at: now,
+              user_confirmed_complete: true,
+              completion_ready: true,
+              completion_missing: [],
               updated_at: now,
             },
             { onConflict: "user_id,stage_number" }
           );
 
-        if (unlockError) {
-          console.error("[StageContext] Error unlocking next stage:", unlockError);
+        if (saveError) {
+          console.error("[StageContext] Error completing stage:", saveError);
+          return { success: false };
         }
-      }
 
-      await loadStages();
-      return { success: true };
+        console.log("[StageContext] Stage completed:", stageNumber);
+
+        if (stageNumber < TOTAL_STAGES) {
+          const { error: unlockError } = await supabase
+            .from("stage_progress")
+            .upsert(
+              {
+                user_id: user.id,
+                stage_number: stageNumber + 1,
+                status: "in_progress",
+                started_at: now,
+                updated_at: now,
+              },
+              { onConflict: "user_id,stage_number" }
+            );
+
+          if (unlockError) {
+            console.error("[StageContext] Error unlocking next stage:", unlockError);
+          } else {
+            console.log("[StageContext] Next stage unlocked:", stageNumber + 1);
+          }
+        }
+
+        await loadStages();
+        return { success: true };
+      } catch (err) {
+        console.error("[StageContext] Unexpected error completing stage:", err);
+        return { success: false };
+      }
     },
     [user, currentStage, stages, recordValidationFailure, loadStages]
   );

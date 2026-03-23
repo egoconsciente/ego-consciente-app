@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { useStages, validateReflection, type ValidationResult, type MissingField } from "@/lib/stage-context";
 import { getStage, TOTAL_STAGES, getPhaseForStage } from "@/lib/stages";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, ArrowRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, AlertCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function Triquetra({ className }: { className?: string }) {
@@ -20,7 +20,6 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [, setLocation] = useLocation();
   const { currentStage, getStageProgress, completeStageWithData, saveReflection } = useStages();
   const [isCompleting, setIsCompleting] = useState(false);
-  const [justCompleted, setJustCompleted] = useState(false);
   const [interventionMissing, setInterventionMissing] = useState<MissingField[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
@@ -42,7 +41,6 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       setAction(progress.action || "");
       setNotes(progress.notes || "");
       setInterventionMissing([]);
-      setJustCompleted(false);
       prevStageRef.current = stageNumber;
     }
   }, [stageNumber, progress.thought, progress.emotion, progress.action, progress.notes]);
@@ -98,7 +96,7 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   }
 
   const isLocked = progress.status === "locked" && stageNumber !== currentStage;
-  const isCompleted = progress.status === "completed" || justCompleted;
+  const isCompleted = progress.status === "completed";
   const isCurrent = stageNumber === currentStage && !isCompleted;
 
   if (isLocked) {
@@ -150,15 +148,23 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
     }
 
     setIsCompleting(true);
-    await flushPendingSaves();
-    const result = await completeStageWithData(stageNumber, localData);
-    if (result.success) {
-      setJustCompleted(true);
-      setInterventionMissing([]);
-    } else if (result.validation && !result.validation.valid) {
-      setInterventionMissing(result.validation.missing);
+    try {
+      await flushPendingSaves();
+      const result = await completeStageWithData(stageNumber, localData);
+      if (result.success) {
+        setInterventionMissing([]);
+        console.log("[StageDetail] Navigating to journey map");
+        setLocation("/journey");
+        return;
+      }
+      if (result.validation && !result.validation.valid) {
+        setInterventionMissing(result.validation.missing);
+      }
+    } catch (err) {
+      console.error("[StageDetail] Unexpected error during completion:", err);
+    } finally {
+      setIsCompleting(false);
     }
-    setIsCompleting(false);
   };
 
   const highlightField = (field: string) => interventionMissing.some((m) => m.field === field);
@@ -382,72 +388,25 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
             </Link>
           </div>
 
-          {isCompleted && !justCompleted && (
+          {isCompleted && (
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
               <Check className="w-8 h-8 text-primary mx-auto mb-3" />
               <p className="font-display text-lg font-semibold text-foreground mb-1">
                 Etapa completada
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Completaste esta etapa. Puedes revisarla cuando quieras.
               </p>
+              <Link
+                href="/journey"
+                className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+              >
+                Volver al mapa
+              </Link>
             </div>
           )}
 
-          {justCompleted && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15, delay: 0.1 }}
-              >
-                <Check className="w-12 h-12 text-primary mx-auto mb-4" />
-              </motion.div>
-              <p className="font-display text-2xl font-semibold text-foreground mb-2">
-                ¡Etapa {stageNumber} completada!
-              </p>
-              {stageNumber < TOTAL_STAGES ? (
-                <>
-                  <p className="text-muted-foreground mb-6">
-                    La etapa {stageNumber + 1} ya está desbloqueada.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Link
-                      href={`/journey/${stageNumber + 1}`}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-                    >
-                      Ir a la siguiente etapa
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href="/journey"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-secondary/80 transition-colors"
-                    >
-                      Ver mapa
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted-foreground mb-6">
-                    Has completado las 40 etapas del proceso de observación consciente.
-                  </p>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    Volver al inicio
-                  </Link>
-                </>
-              )}
-            </motion.div>
-          )}
-
-          {isCurrent && !justCompleted && (
+          {isCurrent && (
             <button
               onClick={handleComplete}
               disabled={isCompleting}
