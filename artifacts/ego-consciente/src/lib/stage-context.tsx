@@ -272,79 +272,88 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
     async (stageNumber: number, data: StageReflection): Promise<{ success: boolean; validation?: ValidationResult }> => {
       if (!user) return { success: false };
 
+      console.log("START COMPLETE STAGE", stageNumber, "current:", currentStage);
+
       if (stageNumber !== currentStage) {
-        console.warn("[StageContext] Cannot complete stage", stageNumber, "— current is", currentStage);
+        console.warn("SKIP: stageNumber", stageNumber, "!= currentStage", currentStage);
         return { success: false };
       }
 
       const progress = stages.find((s) => s.stageNumber === stageNumber);
       if (progress && progress.status === "completed") {
-        console.warn("[StageContext] Stage", stageNumber, "is already completed");
+        console.warn("SKIP: stage already completed");
         return { success: false };
       }
 
       const validation = validateReflection(data);
       if (!validation.valid) {
+        console.log("VALIDATION FAILED:", validation.missing.map(m => m.field));
         const missingFields = validation.missing.map((m) => m.field);
         await recordValidationFailure(stageNumber, missingFields);
         return { success: false, validation };
       }
 
+      console.log("VALIDATION PASSED — writing to DB");
+
       try {
         const now = new Date().toISOString();
 
-        const { error: saveError } = await supabase
+        const { error: updateError } = await supabase
           .from("stage_progress")
-          .upsert(
-            {
-              user_id: user.id,
-              stage_number: stageNumber,
-              thought: data.thought,
-              emotion: data.emotion,
-              action: data.action,
-              notes: data.notes,
-              status: "completed",
-              completed_at: now,
-              user_confirmed_complete: true,
-              completion_ready: true,
-              completion_missing: [],
-              updated_at: now,
-            },
-            { onConflict: "user_id,stage_number" }
-          );
+          .update({
+            status: "completed",
+            completed_at: now,
+            user_confirmed_complete: true,
+            updated_at: now,
+          })
+          .eq("user_id", user.id)
+          .eq("stage_number", stageNumber);
 
-        if (saveError) {
-          console.error("[StageContext] Error completing stage:", saveError);
+        if (updateError) {
+          console.error("UPDATE ERROR", updateError);
           return { success: false };
         }
 
-        console.log("[StageContext] Stage completed:", stageNumber);
+        console.log("STAGE COMPLETED", stageNumber);
+
+        supabase
+          .from("stage_progress")
+          .update({
+            thought: data.thought,
+            emotion: data.emotion,
+            action: data.action,
+            notes: data.notes,
+            completion_ready: true,
+            completion_missing: [],
+          })
+          .eq("user_id", user.id)
+          .eq("stage_number", stageNumber)
+          .then(({ error }) => {
+            if (error) console.warn("Reflection columns save skipped (patch may not be applied):", error.message);
+          });
 
         if (stageNumber < TOTAL_STAGES) {
-          const { error: unlockError } = await supabase
+          const { error: insertError } = await supabase
             .from("stage_progress")
-            .upsert(
-              {
-                user_id: user.id,
-                stage_number: stageNumber + 1,
-                status: "in_progress",
-                started_at: now,
-                updated_at: now,
-              },
-              { onConflict: "user_id,stage_number" }
-            );
+            .upsert({
+              user_id: user.id,
+              stage_number: stageNumber + 1,
+              status: "in_progress",
+              started_at: now,
+              updated_at: now,
+            }, { onConflict: "user_id,stage_number" });
 
-          if (unlockError) {
-            console.error("[StageContext] Error unlocking next stage:", unlockError);
+          if (insertError) {
+            console.error("INSERT ERROR", insertError);
           } else {
-            console.log("[StageContext] Next stage unlocked:", stageNumber + 1);
+            console.log("NEXT STAGE CREATED", stageNumber + 1);
           }
         }
 
         await loadStages();
         return { success: true };
       } catch (err) {
-        console.error("[StageContext] Unexpected error completing stage:", err);
+        console.error("CRITICAL ERROR", err);
         return { success: false };
       }
     },
