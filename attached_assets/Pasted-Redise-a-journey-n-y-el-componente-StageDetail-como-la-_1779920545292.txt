@@ -1,0 +1,89 @@
+Rediseña /journey/:n y el componente StageDetail como la pantalla central de Ego Consciente.
+
+No cambies la lógica de completado.
+No cambies Supabase.
+No rompas autosave.
+No cambies StageContext salvo que sea necesario para presentar mejor la UI.
+No cambies estructura de rutas.
+
+Objetivo:
+StageDetail debe sentirse como un encuentro guiado con el Ego, no como un formulario.
+
+Estructura visual deseada:
+
+1. StageRitualHeader:
+   - etapa número
+   - fase
+   - tiempo estimado
+   - estado de guardado
+   - progreso de campos
+   - botón discreto para volver al mapa
+
+2. Voz del Ego:
+   - bloque editorial con font-display
+   - tono íntimo
+   - card paper premium
+   - si existe egoIntro, usarlo
+   - si existe dailyPhrase, mostrarlo como cita
+   - si no existe dailyPhrase, no inventar datos
+
+3. Objetivo visible:
+   - mostrar como “Lo que observamos hoy”
+   - no sonar académico
+
+4. Instrucción:
+   - clara
+   - breve
+   - accionable
+
+5. PEAComposer:
+   Reemplazar textareas genéricas por una triada visual:
+   - Pensamiento
+   - Emoción
+   - Acción
+
+   Cada una debe ser una card conectada visualmente.
+   Debe sentirse como el corazón del sistema.
+   Mantener autosave debounced actual.
+   Mantener validación actual.
+   Mantener accesibilidad de labels.
+
+6. Validación suave:
+   - si faltan campos, mostrar panel “Ego Guía”:
+     “Todavía no hay suficiente para cerrar esta etapa.”
+   - no usar rojo agresivo
+   - no usar lenguaje de error
+
+7. Completar etapa:
+   - botón principal elegante
+   - estado completado como cierre ritual:
+     “Esta etapa quedó observada.”
+   - CTA siguiente:
+     “Volver al mapa” o “Continuar”
+
+8. Enlaces contextuales:
+   - Chat profundo
+   - Registro P-E-A libre
+   - Volver al Journey
+
+9. Diseño:
+   - máximo nivel visual
+   - premium
+   - cálido
+   - íntimo
+   - moderno
+   - sin saturación
+   - mobile first
+   - desktop con lectura cómoda
+
+10. Motion:
+   - entrada suave de secciones
+   - nada excesivo
+   - respetar prefers-reduced-motion
+
+Después:
+- probar autosave
+- probar completar etapa
+- probar volver a Journey
+- probar mobile
+- arreglar errores TypeScript
