@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -7,7 +8,6 @@ import {
   BookOpen,
   MessageCircle,
   Clock,
-  Hourglass,
   Compass,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -15,6 +15,13 @@ import { TOTAL_STAGES, type StageDefinition } from "@/lib/stages";
 import { EcSigil, StageNumeral } from "@/components/ec";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import {
+  SafetyBanner,
+  GroundingSheet,
+  PauseProcessDialog,
+  Step72Card,
+  type SafetyLevel,
+} from "@/components/safety";
 
 const PHASES = [
   { name: "Observación", start: 1, end: 10 },
@@ -146,6 +153,13 @@ function ActiveDashboard({ userName }: { userName: string }) {
   const stageDef = getCurrentStageDefinition();
   const reduced = respectsReducedMotion();
 
+  // Safety state — UI preparada, sin lógica clínica todavía.
+  // Default 'none' = invisible. Declarado antes del early return para
+  // mantener el orden estable de hooks (React rules-of-hooks).
+  const [safetyLevel] = useState<SafetyLevel>("none");
+  const [groundingOpen, setGroundingOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -191,6 +205,13 @@ function ActiveDashboard({ userName }: { userName: string }) {
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8 lg:space-y-10">
+        {/* Safety banner (oculto si level='none') */}
+        <SafetyBanner
+          level={safetyLevel}
+          onGround={() => setGroundingOpen(true)}
+          onPause={() => setPauseOpen(true)}
+        />
+
         {/* Greeting */}
         <header>
           <p className="ec-eyebrow text-[hsl(var(--terracota))]">
@@ -242,9 +263,19 @@ function ActiveDashboard({ userName }: { userName: string }) {
           />
         </section>
 
-        {/* 72h step placeholder */}
-        <SeventyTwoHourPlaceholder />
+        {/* 72h step (placeholder hasta que haya datos reales) */}
+        <Step72Card />
       </div>
+
+      {/* Diálogos de cuidado del proceso (preparados, sin backend) */}
+      <GroundingSheet
+        open={groundingOpen}
+        onClose={() => setGroundingOpen(false)}
+      />
+      <PauseProcessDialog
+        open={pauseOpen}
+        onCancel={() => setPauseOpen(false)}
+      />
     </AppLayout>
   );
 }
@@ -576,33 +607,6 @@ function SecondaryAccess({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-//  72H STEP PLACEHOLDER
-// ─────────────────────────────────────────────────────────────
-function SeventyTwoHourPlaceholder() {
-  return (
-    <section
-      className={cn(
-        "rounded-3xl px-6 py-7 sm:px-8 sm:py-8",
-        "warm-border bg-[hsl(var(--paper-soft))]",
-        "flex items-start gap-4",
-      )}
-      aria-label="Paso de 72 horas"
-    >
-      <span className="shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center bg-[hsl(var(--paper))] warm-border-soft text-[hsl(var(--ink-soft))]">
-        <Hourglass className="w-4 h-4" strokeWidth={1.6} />
-      </span>
-      <div className="min-w-0">
-        <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">
-          Paso de 72 horas
-        </p>
-        <p className="mt-2 ec-serif-italic text-[15px] sm:text-base text-[hsl(var(--ink))] leading-relaxed">
-          Cuando llegue el momento, aquí aparecerá tu paso de 72 horas.
-        </p>
-      </div>
-    </section>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────
 //  ENTRY POINT

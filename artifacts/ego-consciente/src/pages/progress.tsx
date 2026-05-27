@@ -16,6 +16,7 @@ import {
 import { Link } from "wouter";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { Step72Card } from "@/components/safety";
 
 // Ceremonial phase labels matching Journey (presentation only)
 type CeremonialPhase = {
@@ -528,12 +529,7 @@ export default function Progress() {
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <PlaceholderCard
-              icon={Clock}
-              eyebrow="Steps de 72 horas"
-              title="Compromisos breves entre etapas"
-              hint="Aparecerán cuando estén disponibles."
-            />
+            <Step72Card />
             <PlaceholderCard
               icon={Sparkle}
               eyebrow="Hitos D10 · D20 · D30 · D40"

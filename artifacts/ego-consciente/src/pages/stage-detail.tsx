@@ -25,6 +25,12 @@ import { Link, useLocation } from "wouter";
 import { EcSigil, StageNumeral } from "@/components/ec";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import {
+  SafetyBanner,
+  GroundingSheet,
+  PauseProcessDialog,
+  type SafetyLevel,
+} from "@/components/safety";
 
 // ─────────────────────────────────────────────────────────────
 //  StageDetail
@@ -54,6 +60,12 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [emotion, setEmotion] = useState("");
   const [action, setAction] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Safety state — UI preparada, default oculta. Declarado arriba para
+  // mantener el orden estable de hooks frente a los early returns.
+  const [safetyLevel] = useState<SafetyLevel>("none");
+  const [groundingOpen, setGroundingOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
 
   const valuesRef = useRef({ thought: "", emotion: "", action: "", notes: "" });
   useEffect(() => {
@@ -325,6 +337,14 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 py-6 lg:py-10 pb-32">
+        {/* Safety banner (UI preparada, oculta si level='none') */}
+        <SafetyBanner
+          level={safetyLevel}
+          onGround={() => setGroundingOpen(true)}
+          onPause={() => setPauseOpen(true)}
+          className="mb-6"
+        />
+
         {/* ── 1. StageRitualHeader ────────────────────────── */}
         <StageRitualHeader
           stageNumber={stageNumber}
@@ -692,6 +712,16 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
           </motion.section>
         </div>
       </div>
+
+      {/* Diálogos de cuidado del proceso (preparados, sin backend) */}
+      <GroundingSheet
+        open={groundingOpen}
+        onClose={() => setGroundingOpen(false)}
+      />
+      <PauseProcessDialog
+        open={pauseOpen}
+        onCancel={() => setPauseOpen(false)}
+      />
     </AppLayout>
   );
 }
