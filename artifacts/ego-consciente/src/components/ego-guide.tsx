@@ -84,12 +84,14 @@ export function EgoGuideButton() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-[5.25rem] md:bottom-8 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center"
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            aria-label="Abrir guía del Ego"
+            className="fixed bottom-[5.75rem] right-5 md:bottom-6 md:right-6 z-30 inline-flex items-center gap-2 pl-3 pr-4 py-2 rounded-full paper-surface text-[hsl(var(--tierra-deep))] shadow-md shadow-[hsl(var(--tierra-deep)/0.10)] hover:shadow-lg transition-shadow"
+            style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            aria-label="Abrir ayuda rápida del Ego Guía"
           >
-            <Triquetra className="w-7 h-7" />
+            <Triquetra className="w-5 h-5" />
+            <span className="ec-meta text-[12px] hidden md:inline">Ayuda</span>
           </motion.button>
         )}
       </AnimatePresence>
