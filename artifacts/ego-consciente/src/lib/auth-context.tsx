@@ -17,7 +17,8 @@ interface AuthContextType {
   markOnboardingComplete: () => void;
   markPortalComplete: () => void;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
-  register: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  register: (email: string, password: string, name: string) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
 }
 
@@ -135,14 +136,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     name: string
-  ): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signUp({
+  ): Promise<{ error: string | null; needsEmailConfirmation: boolean }> => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name },
         emailRedirectTo: getAuthRedirectUrl(),
       },
+    });
+    if (error) return { error: error.message, needsEmailConfirmation: false };
+    const needsEmailConfirmation = !data.session;
+    return { error: null, needsEmailConfirmation };
+  };
+
+  const resendConfirmation = async (email: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: getAuthRedirectUrl() },
     });
     if (error) return { error: error.message };
     return { error: null };
@@ -174,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         markPortalComplete,
         login,
         register,
+        resendConfirmation,
         logout,
       }}
     >

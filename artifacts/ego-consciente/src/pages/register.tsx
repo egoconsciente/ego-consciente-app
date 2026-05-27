@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
+import { Mail, RefreshCw, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -10,7 +11,10 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
-  const { register } = useAuth();
+  const [autoSignedIn, setAutoSignedIn] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const { register, resendConfirmation } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,20 +28,37 @@ export default function Register() {
       return;
     }
 
-    const { error: authError } = await register(email, password, name);
+    const { error: authError, needsEmailConfirmation } = await register(email, password, name);
 
     if (authError) {
       setError("No pudimos crear tu cuenta. Inténtalo de nuevo.");
       setIsLoading(false);
-    } else {
-      // Show brief transition screen while auth state updates.
-      // AuthRoute will redirect to /onboarding automatically once session is active.
+      return;
+    }
+
+    if (needsEmailConfirmation) {
       setEmailSent(true);
-      setTimeout(() => setLocation("/onboarding"), 1500);
+      setIsLoading(false);
+    } else {
+      setAutoSignedIn(true);
+      setTimeout(() => setLocation("/onboarding"), 1200);
     }
   };
 
-  if (emailSent) {
+  const handleResend = async () => {
+    setResendStatus("sending");
+    setResendMessage(null);
+    const { error: resendError } = await resendConfirmation(email);
+    if (resendError) {
+      setResendStatus("error");
+      setResendMessage("No pudimos reenviar el correo. Inténtalo en unos segundos.");
+    } else {
+      setResendStatus("sent");
+      setResendMessage("Correo reenviado. Revisa tu bandeja de entrada.");
+    }
+  };
+
+  if (autoSignedIn) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div
@@ -54,6 +75,95 @@ export default function Register() {
           <p className="text-muted-foreground">
             Entrando a tu espacio...
           </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-md bg-card p-8 md:p-10 rounded-3xl border border-border shadow-2xl shadow-black/5 relative z-10"
+        >
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail className="w-8 h-8 text-primary" />
+          </div>
+
+          <div className="text-center mb-6">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold text-foreground mb-3">
+              Revisa tu correo
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Te enviamos un enlace de confirmación a{" "}
+              <span className="font-medium text-foreground">{email}</span>.
+              Abre tu correo y confirma tu cuenta para continuar con Ego Consciente.
+            </p>
+            <p className="text-sm text-muted-foreground/80 mt-3">
+              Si no lo ves, revisa la carpeta de spam o correo no deseado.
+            </p>
+          </div>
+
+          {resendMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`text-sm text-center rounded-lg px-4 py-3 mb-4 ${
+                resendStatus === "sent"
+                  ? "bg-primary/10 border border-primary/20 text-primary"
+                  : "bg-destructive/10 border border-destructive/20 text-destructive"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {resendStatus === "sent" && <CheckCircle2 className="w-4 h-4" />}
+                <span>{resendMessage}</span>
+              </div>
+            </motion.div>
+          )}
+
+          <div className="space-y-3">
+            <button
+              onClick={() => setLocation("/login")}
+              className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              Ya confirmé mi correo
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleResend}
+              disabled={resendStatus === "sending" || resendStatus === "sent"}
+              className="w-full py-3 bg-secondary text-secondary-foreground rounded-xl font-medium hover:bg-secondary/80 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {resendStatus === "sending" ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Reenviando...
+                </>
+              ) : resendStatus === "sent" ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Correo reenviado
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Reenviar correo
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => setLocation("/login")}
+              className="w-full py-3 text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            >
+              Volver a iniciar sesión
+            </button>
+          </div>
         </motion.div>
       </div>
     );

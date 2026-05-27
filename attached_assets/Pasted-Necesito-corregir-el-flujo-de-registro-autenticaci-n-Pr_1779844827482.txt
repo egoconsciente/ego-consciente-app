@@ -1,0 +1,49 @@
+Necesito corregir el flujo de registro/autenticación.
+
+Problema actual:
+Cuando un usuario se registra con correo, Supabase envía un email de confirmación, pero la app no informa claramente al usuario que debe revisar su correo y confirmar la cuenta. Esto genera confusión porque parece que la app no avanzó.
+
+Objetivo:
+Después de que el usuario envíe el formulario de registro, si Supabase requiere confirmación por email, la app debe mostrar una pantalla o estado claro de “Revisa tu correo”.
+
+Requisitos:
+
+1. En la página de registro, después de un signUp exitoso, NO enviar al usuario inmediatamente a onboarding si la sesión no está activa todavía.
+
+2. Mostrar un mensaje claro:
+   Título: “Revisa tu correo”
+   Texto: “Te enviamos un enlace de confirmación. Abre tu correo y confirma tu cuenta para continuar con Ego Consciente.”
+   Texto secundario: “Si no lo ves, revisa spam o correo no deseado.”
+
+3. Agregar botón:
+   “Ya confirmé mi correo”
+   Acción: redirigir a /login o intentar refrescar sesión y, si ya está autenticado, continuar al flujo correspondiente.
+
+4. Agregar botón opcional:
+   “Volver a iniciar sesión”
+   Acción: ir a /login.
+
+5. Si existe función para reenviar correo de confirmación, agregar botón:
+   “Reenviar correo”
+   Si no existe todavía, no inventarla; dejarlo como pendiente o manejarlo solo si Supabase client ya lo soporta correctamente.
+
+6. Mantener el flujo existente:
+   - Usuario nuevo confirmado → onboarding
+   - Usuario con onboarding completado pero proceso no iniciado → dashboard pre-proceso
+   - Usuario con proceso iniciado → dashboard activo
+   - No romper auth callback.
+
+7. Revisar especialmente:
+   - src/pages/register.tsx
+   - src/pages/login.tsx
+   - src/pages/auth-callback.tsx
+   - src/lib/auth-context.tsx
+
+8. Entregar reporte final con:
+   - archivos modificados
+   - comportamiento antes/después
+   - cómo probar manualmente el flujo
+   - si requiere cambiar alguna configuración en Supabase Auth
+
+Criterio de éxito:
+Un usuario que se registra entiende claramente que debe confirmar su correo antes de continuar.
