@@ -1,26 +1,48 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
-import { useStages, validateReflection, type ValidationResult, type MissingField } from "@/lib/stage-context";
+import {
+  useStages,
+  validateReflection,
+  type MissingField,
+} from "@/lib/stage-context";
 import { getStage, TOTAL_STAGES, getPhaseForStage } from "@/lib/stages";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, AlertCircle, Quote, Target } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock,
+  Lock,
+  MessageCircle,
+  BookOpen,
+  Eye,
+  Heart,
+  Footprints,
+  Sparkle,
+  Compass,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { EcSigil, StageNumeral } from "@/components/ec";
+import { respectsReducedMotion } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
-function Triquetra({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
-      {[0, 120, 240].map((angle) => (
-        <ellipse key={angle} cx="50" cy="32" rx="16" ry="28" transform={`rotate(${angle} 50 52)`} />
-      ))}
-    </svg>
-  );
-}
-
+// ─────────────────────────────────────────────────────────────
+//  StageDetail
+// ─────────────────────────────────────────────────────────────
 export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [, setLocation] = useLocation();
-  const { currentStage, getStageProgress, completeStageWithData, saveReflection } = useStages();
+  const {
+    currentStage,
+    getStageProgress,
+    completeStageWithData,
+    saveReflection,
+  } = useStages();
+  const reduced = respectsReducedMotion();
+
   const [isCompleting, setIsCompleting] = useState(false);
-  const [interventionMissing, setInterventionMissing] = useState<MissingField[]>([]);
+  const [interventionMissing, setInterventionMissing] = useState<MissingField[]>(
+    [],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
 
@@ -39,9 +61,20 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   }, [thought, emotion, action, notes]);
 
   const buildReflectionPayload = useCallback(
-    (responses: { thought: string; emotion: string; action: string; notes: string }, opts: { completed: boolean }): Record<string, unknown> | null => {
+    (
+      responses: {
+        thought: string;
+        emotion: string;
+        action: string;
+        notes: string;
+      },
+      opts: { completed: boolean },
+    ): Record<string, unknown> | null => {
       if (!stageDef) {
-        console.warn("[StageDetail] buildReflectionPayload skipped: stageDef is undefined", { stageNumber });
+        console.warn(
+          "[StageDetail] buildReflectionPayload skipped: stageDef is undefined",
+          { stageNumber },
+        );
         return null;
       }
       const payload: Record<string, unknown> = {
@@ -79,7 +112,7 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       }
       return payload;
     },
-    [stageDef, phase.name, stageNumber]
+    [stageDef, phase.name, stageNumber],
   );
 
   const prevStageRef = useRef<number | null>(null);
@@ -92,20 +125,33 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       setInterventionMissing([]);
       prevStageRef.current = stageNumber;
     }
-  }, [stageNumber, progress.thought, progress.emotion, progress.action, progress.notes]);
+  }, [
+    stageNumber,
+    progress.thought,
+    progress.emotion,
+    progress.action,
+    progress.notes,
+  ]);
 
-  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
   const activeSavesRef = useRef(0);
 
   const debouncedSave = useCallback(
     (field: string, value: string) => {
-      if (saveTimersRef.current[field]) clearTimeout(saveTimersRef.current[field]);
+      if (saveTimersRef.current[field])
+        clearTimeout(saveTimersRef.current[field]);
       saveTimersRef.current[field] = setTimeout(async () => {
         activeSavesRef.current++;
         setIsSaving(true);
         const current = { ...valuesRef.current, [field]: value };
         const payload = buildReflectionPayload(current, { completed: false });
-        await saveReflection(stageNumber, { [field]: value }, payload ?? undefined);
+        await saveReflection(
+          stageNumber,
+          { [field]: value },
+          payload ?? undefined,
+        );
         activeSavesRef.current--;
         if (activeSavesRef.current === 0) {
           setIsSaving(false);
@@ -114,10 +160,14 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
         }
       }, 800);
     },
-    [stageNumber, saveReflection, buildReflectionPayload]
+    [stageNumber, saveReflection, buildReflectionPayload],
   );
 
-  const handleFieldChange = (field: string, value: string, setter: (v: string) => void) => {
+  const handleFieldChange = (
+    field: string,
+    value: string,
+    setter: (v: string) => void,
+  ) => {
     setter(value);
     debouncedSave(field, value);
     if (interventionMissing.length > 0) {
@@ -130,16 +180,45 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       clearTimeout(saveTimersRef.current[key]);
       delete saveTimersRef.current[key];
     }
-    const payload = buildReflectionPayload({ thought, emotion, action, notes }, { completed: false });
-    await saveReflection(stageNumber, { thought, emotion, action, notes }, payload ?? undefined);
-  }, [stageNumber, thought, emotion, action, notes, saveReflection, buildReflectionPayload]);
+    const payload = buildReflectionPayload(
+      { thought, emotion, action, notes },
+      { completed: false },
+    );
+    await saveReflection(
+      stageNumber,
+      { thought, emotion, action, notes },
+      payload ?? undefined,
+    );
+  }, [
+    stageNumber,
+    thought,
+    emotion,
+    action,
+    notes,
+    saveReflection,
+    buildReflectionPayload,
+  ]);
+
+  // Triángulo de campos requeridos
+  const filledCount = useMemo(() => {
+    let n = 0;
+    if (thought.trim().length >= 3) n++;
+    if (emotion.trim().length >= 3) n++;
+    if (action.trim().length >= 3) n++;
+    return n;
+  }, [thought, emotion, action]);
 
   if (!stageDef) {
     return (
       <AppLayout>
-        <div className="max-w-2xl mx-auto p-6 lg:p-10 pt-12 text-center">
-          <p className="text-muted-foreground">Etapa no encontrada.</p>
-          <Link href="/journey" className="text-primary mt-4 inline-block">
+        <div className="max-w-2xl mx-auto px-5 sm:px-6 py-12 text-center">
+          <p className="ec-serif-italic text-[hsl(var(--ink-soft))]">
+            Etapa no encontrada.
+          </p>
+          <Link
+            href="/journey"
+            className="ec-eyebrow text-[hsl(var(--terracota))] mt-4 inline-block hover:underline"
+          >
             Volver al mapa
           </Link>
         </div>
@@ -151,37 +230,38 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const isCompleted = progress.status === "completed";
   const isCurrent = stageNumber === currentStage && !isCompleted;
 
+  // ─── LOCKED ───────────────────────────────────────────────
   if (isLocked) {
     return (
       <AppLayout>
-        <div className="max-w-2xl mx-auto p-6 lg:p-10 pt-12">
-          <div className="flex items-center gap-4 mb-8">
-            <Link
-              href="/journey"
-              className="p-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="font-display text-2xl font-semibold">
-                Etapa {stageNumber}
-              </h1>
+        <div className="max-w-2xl mx-auto px-5 sm:px-6 py-10">
+          <BackToMap />
+          <div className="paper-surface rounded-3xl px-6 py-12 sm:px-10 sm:py-14 mt-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-[hsl(var(--paper-veil))] warm-border-soft mx-auto mb-6 flex items-center justify-center">
+              <Lock
+                className="w-5 h-5 text-[hsl(var(--ink-soft))]"
+                strokeWidth={1.6}
+              />
             </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-6">
-              <Lock className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h2 className="font-display text-2xl font-semibold text-foreground mb-3">
+            <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">
+              Etapa {stageNumber}
+            </p>
+            <h2 className="mt-2 ec-serif text-2xl sm:text-3xl text-[hsl(var(--tierra-deep))]">
               {stageDef.title}
             </h2>
-            <p className="text-muted-foreground mb-8 max-w-md leading-relaxed">
-              Esta etapa aún no está desbloqueada. Completa las etapas anteriores para acceder.
+            <p className="mt-4 ec-serif-italic text-[15px] text-[hsl(var(--ink-soft))] max-w-md mx-auto leading-relaxed">
+              Esta etapa llegará a su tiempo. Termina las anteriores y se
+              abrirá.
             </p>
             <Link
               href="/journey"
-              className="px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-medium hover:bg-primary/90 transition-all"
+              className={cn(
+                "mt-8 inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full",
+                "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+                "text-sm font-medium",
+                "motion-safe:hover:shadow-lg motion-safe:hover:-translate-y-[1px] motion-safe:transition-all motion-safe:duration-300",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+              )}
             >
               Volver al mapa
             </Link>
@@ -202,8 +282,14 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
     setIsCompleting(true);
     try {
       await flushPendingSaves();
-      const completionPayload = buildReflectionPayload(localData, { completed: true });
-      const result = await completeStageWithData(stageNumber, localData, completionPayload ?? undefined);
+      const completionPayload = buildReflectionPayload(localData, {
+        completed: true,
+      });
+      const result = await completeStageWithData(
+        stageNumber,
+        localData,
+        completionPayload ?? undefined,
+      );
       if (result.success) {
         setInterventionMissing([]);
         console.log("[StageDetail] Navigating to journey map");
@@ -220,305 +306,723 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
     }
   };
 
-  const highlightField = (field: string) => interventionMissing.some((m) => m.field === field);
+  const highlightField = (field: string) =>
+    interventionMissing.some((m) => m.field === field);
+
+  const fadeIn = (delay = 0) =>
+    reduced
+      ? { initial: false as const, animate: { opacity: 1 } }
+      : {
+          initial: { opacity: 0, y: 12 },
+          animate: { opacity: 1, y: 0 },
+          transition: {
+            duration: 0.6,
+            delay,
+            ease: [0.22, 0.61, 0.36, 1] as [number, number, number, number],
+          },
+        };
 
   return (
     <AppLayout>
-      <div className="max-w-2xl mx-auto p-6 lg:p-10 pt-8 pb-32">
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href="/journey"
-            className="p-2 rounded-xl border border-border hover:bg-secondary transition-colors"
+      <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 py-6 lg:py-10 pb-32">
+        {/* ── 1. StageRitualHeader ────────────────────────── */}
+        <StageRitualHeader
+          stageNumber={stageNumber}
+          phaseName={phase.name}
+          estimatedMinutes={stageDef.estimatedMinutes}
+          isSaving={isSaving}
+          saveStatus={saveStatus}
+          filledCount={filledCount}
+          totalRequired={3}
+          isCompleted={isCompleted}
+          reduced={reduced}
+        />
+
+        <div className="mt-8 lg:mt-10 space-y-8 lg:space-y-10">
+          {/* ── 2. Voz del Ego ──────────────────────────── */}
+          <motion.section
+            {...fadeIn(0)}
+            className="living-glass rounded-3xl px-6 py-7 sm:px-9 sm:py-9 relative overflow-hidden"
+            aria-label="Voz del Ego Guía"
           >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold tracking-widest uppercase text-primary">
-              {phase.name} — Etapa {stageNumber} de {TOTAL_STAGES}
-            </p>
-            <h1 className="font-display text-2xl lg:text-3xl font-semibold truncate">
-              {stageDef.title}
-            </h1>
-          </div>
-          {isCompleted && (
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shrink-0">
-              <Check className="w-5 h-5 text-primary-foreground" />
-            </div>
-          )}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6"
-        >
-          <div className="py-2">
-            <p className="font-display text-lg md:text-xl text-foreground/90 leading-relaxed whitespace-pre-line">
-              {stageDef.egoIntro}
-            </p>
-          </div>
-
-          {stageDef.dailyPhrase && (
-            <figure className="relative bg-primary/5 border-l-4 border-primary rounded-r-2xl rounded-l-md px-6 py-5">
-              <Quote className="absolute top-3 right-4 w-5 h-5 text-primary/30" />
-              <blockquote className="font-display text-base md:text-lg italic text-foreground/85 leading-relaxed pr-6">
-                {stageDef.dailyPhrase}
-              </blockquote>
-            </figure>
-          )}
-
-          <div className="bg-card border border-border rounded-2xl p-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Tiempo estimado</span>
-            </div>
-            <span className="font-semibold">~{stageDef.estimatedMinutes} min</span>
-          </div>
-
-          {stageDef.visibleObjective && (
-            <div className="bg-card border border-border rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-primary" />
-                <p className="text-xs font-semibold tracking-widest uppercase text-primary">
-                  Objetivo de esta etapa
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(60% 60% at 90% 0%, hsl(var(--ambar-soft) / 0.18) 0%, transparent 65%)",
+              }}
+            />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-9 h-9 rounded-full bg-[hsl(var(--paper-veil))] warm-border-soft inline-flex items-center justify-center text-[hsl(var(--tierra-deep))]">
+                  <EcSigil variant="hairline" size={20} />
+                </span>
+                <p className="ec-eyebrow text-[hsl(var(--terracota))]">
+                  El Ego Guía
                 </p>
               </div>
-              <p className="text-foreground leading-relaxed">
-                {stageDef.visibleObjective}
+              <p className="font-display text-lg sm:text-xl text-[hsl(var(--tierra-deep))] leading-relaxed whitespace-pre-line">
+                {stageDef.egoIntro}
               </p>
+
+              {stageDef.dailyPhrase && (
+                <figure className="mt-6 pl-5 border-l border-[hsl(var(--warm-line))]">
+                  <blockquote className="ec-serif-italic text-[15px] sm:text-base text-[hsl(var(--tierra-deep))] leading-relaxed">
+                    {stageDef.dailyPhrase}
+                  </blockquote>
+                </figure>
+              )}
             </div>
+          </motion.section>
+
+          {/* ── 3. Lo que observamos hoy ──────────────── */}
+          {stageDef.visibleObjective && (
+            <motion.section
+              {...fadeIn(0.05)}
+              className="paper-surface rounded-3xl px-6 py-7 sm:px-8 sm:py-8"
+              aria-label="Lo que observamos hoy"
+            >
+              <div className="flex items-start gap-3">
+                <Compass
+                  className="w-4 h-4 mt-[3px] shrink-0 text-[hsl(var(--terracota))]"
+                  strokeWidth={1.6}
+                />
+                <div className="min-w-0">
+                  <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">
+                    Lo que observamos hoy
+                  </p>
+                  <p className="mt-2 ec-serif text-lg sm:text-xl text-[hsl(var(--tierra-deep))] leading-snug">
+                    {stageDef.visibleObjective}
+                  </p>
+                </div>
+              </div>
+            </motion.section>
           )}
 
-          <div className="bg-card border border-border rounded-2xl p-8">
-            <h2 className="font-display text-xl font-semibold mb-2">
+          {/* ── 4. Instrucción ──────────────────────── */}
+          <motion.section
+            {...fadeIn(0.1)}
+            className="paper-surface rounded-3xl px-6 py-7 sm:px-8 sm:py-8"
+            aria-label="Instrucción"
+          >
+            <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">
+              Cómo observar hoy
+            </p>
+            <h3 className="mt-2 ec-serif text-xl sm:text-2xl text-[hsl(var(--tierra-deep))] leading-snug">
               {stageDef.shortDescription}
-            </h2>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+            </h3>
+            <p className="mt-3 text-[15px] sm:text-base text-[hsl(var(--ink))] leading-relaxed whitespace-pre-line">
               {stageDef.instructionText}
-            </p>
-          </div>
-
-          <div className="bg-accent/10 border border-accent/20 rounded-2xl p-6">
-            <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-2">
-              Para completar esta etapa
-            </p>
-            <p className="text-foreground leading-relaxed">
-              {stageDef.completionHint}
             </p>
 
             {stageDef.requiredData && stageDef.requiredData.length > 0 && (
-              <div className="mt-5 pt-5 border-t border-accent/20">
-                <p className="text-xs font-medium text-foreground/70 mb-3">
-                  Antes de completar, observa si registraste…
+              <div className="mt-6 pt-5 border-t border-[hsl(var(--warm-line-soft))]">
+                <p className="ec-meta italic text-[hsl(var(--ink-soft))] mb-2.5">
+                  Antes de cerrar, observa si registraste…
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-1.5">
                   {stageDef.requiredData.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/80 leading-relaxed">
-                      <span className="text-accent mt-0.5 shrink-0">·</span>
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 text-[14px] text-[hsl(var(--ink))] leading-relaxed"
+                    >
+                      <span className="mt-1 inline-block w-1 h-1 rounded-full bg-[hsl(var(--terracota))] shrink-0" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-          </div>
+          </motion.section>
 
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-semibold">Tu observación</h3>
-              <AnimatePresence>
-                {isSaving && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-muted-foreground"
-                  >
-                    Guardando...
-                  </motion.span>
-                )}
-                {saveStatus === "saved" && !isSaving && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-primary"
-                  >
-                    Guardado
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Pensamiento
-              </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                ¿Qué pensamiento apareció o se repitió?
+          {/* ── 5. PEAComposer (triada) ───────────────── */}
+          <motion.section
+            {...fadeIn(0.15)}
+            className="space-y-3"
+            aria-label="Tu observación P-E-A"
+          >
+            <div className="flex items-center justify-between px-1">
+              <p className="ec-eyebrow text-[hsl(var(--terracota))]">
+                Tu observación · P-E-A
               </p>
-              <textarea
-                value={thought}
-                onChange={(e) => handleFieldChange("thought", e.target.value, setThought)}
-                placeholder="Escribe el pensamiento que observaste..."
-                rows={3}
-                disabled={isCompleted}
-                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("thought") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
+              <SaveStatus
+                isSaving={isSaving}
+                saveStatus={saveStatus}
+                reduced={reduced}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Emoción
-              </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                ¿Qué sentiste? Nombra la emoción lo más específica posible.
-              </p>
-              <textarea
-                value={emotion}
-                onChange={(e) => handleFieldChange("emotion", e.target.value, setEmotion)}
-                placeholder="Nombra la emoción que acompañó ese pensamiento..."
-                rows={2}
-                disabled={isCompleted}
-                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("emotion") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
-              />
-            </div>
+            <PeaCard
+              icon={Eye}
+              label="Pensamiento"
+              hint="¿Qué pensamiento apareció o se repitió?"
+              placeholder="Escribe el pensamiento que observaste…"
+              rows={3}
+              value={thought}
+              disabled={isCompleted}
+              missing={highlightField("thought")}
+              onChange={(v) => handleFieldChange("thought", v, setThought)}
+              accent="terracota"
+              filled={thought.trim().length >= 3}
+            />
+            <Connector />
+            <PeaCard
+              icon={Heart}
+              label="Emoción"
+              hint="¿Qué sentiste? Nombra la emoción lo más específica posible."
+              placeholder="Nombra la emoción que acompañó ese pensamiento…"
+              rows={2}
+              value={emotion}
+              disabled={isCompleted}
+              missing={highlightField("emotion")}
+              onChange={(v) => handleFieldChange("emotion", v, setEmotion)}
+              accent="ambar"
+              filled={emotion.trim().length >= 3}
+            />
+            <Connector />
+            <PeaCard
+              icon={Footprints}
+              label="Acción o evitación"
+              hint="¿Qué hiciste o qué evitaste hacer?"
+              placeholder="Describe lo que hiciste o dejaste de hacer…"
+              rows={2}
+              value={action}
+              disabled={isCompleted}
+              missing={highlightField("action")}
+              onChange={(v) => handleFieldChange("action", v, setAction)}
+              accent="tierra"
+              filled={action.trim().length >= 3}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Acción o evitación
-              </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                ¿Qué hiciste o qué evitaste hacer?
-              </p>
-              <textarea
-                value={action}
-                onChange={(e) => handleFieldChange("action", e.target.value, setAction)}
-                placeholder="Describe lo que hiciste o dejaste de hacer..."
-                rows={2}
-                disabled={isCompleted}
-                className={`w-full bg-background border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none transition-colors ${highlightField("action") ? "border-orange-400 ring-1 ring-orange-400/30" : "border-border"}`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Nota adicional <span className="text-muted-foreground font-normal">(opcional)</span>
+            {/* Nota adicional (opcional) */}
+            <div className="paper-surface rounded-2xl px-5 py-5 sm:px-6 sm:py-6 mt-2">
+              <label
+                htmlFor="stage-notes"
+                className="ec-eyebrow text-[hsl(var(--ink-soft))]"
+              >
+                Nota adicional{" "}
+                <span className="normal-case tracking-normal italic text-[hsl(var(--ink-soft))]">
+                  (opcional)
+                </span>
               </label>
               <textarea
+                id="stage-notes"
                 value={notes}
-                onChange={(e) => handleFieldChange("notes", e.target.value, setNotes)}
-                placeholder="Algo más que quieras registrar..."
+                onChange={(e) =>
+                  handleFieldChange("notes", e.target.value, setNotes)
+                }
+                placeholder="Algo más que quieras registrar…"
                 rows={2}
                 disabled={isCompleted}
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                className={cn(
+                  "mt-2 w-full bg-transparent border-0 outline-none resize-none",
+                  "text-[15px] text-[hsl(var(--ink))] placeholder:text-[hsl(var(--ink-soft))]/55",
+                  "leading-relaxed",
+                  isCompleted && "cursor-not-allowed opacity-70",
+                )}
               />
             </div>
-          </div>
+          </motion.section>
 
+          {/* ── 6. Validación suave (Ego Guía) ─────── */}
           <AnimatePresence>
             {interventionMissing.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-6 space-y-4"
+              <motion.section
+                initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: reduced ? 0 : 0.4 }}
+                className="warm-border bg-[hsl(var(--paper-soft))] rounded-3xl px-6 py-6 sm:px-7 sm:py-7"
+                role="status"
+                aria-live="polite"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                    <Triquetra className="w-4 h-4 text-primary" />
-                  </div>
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="shrink-0 w-9 h-9 rounded-full bg-[hsl(var(--paper))] warm-border-soft inline-flex items-center justify-center text-[hsl(var(--tierra-deep))]">
+                    <EcSigil variant="hairline" size={18} />
+                  </span>
                   <div>
-                    <p className="font-display text-sm font-semibold text-foreground mb-1">
-                      Ego Guía
+                    <p className="ec-eyebrow text-[hsl(var(--terracota))]">
+                      El Ego Guía
                     </p>
-                    <p className="text-sm text-foreground/80 leading-relaxed">
-                      Antes de avanzar, hay algo que tu sistema aún no ha terminado de mostrar.
+                    <p className="mt-1.5 ec-serif text-[17px] sm:text-lg text-[hsl(var(--tierra-deep))] leading-snug">
+                      Todavía no hay suficiente para cerrar esta etapa.
                     </p>
                   </div>
                 </div>
-
-                <div className="space-y-3 pl-11">
+                <ul className="space-y-2 pl-12">
                   {interventionMissing.map((item) => (
-                    <div key={item.field} className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-                      <p className="text-sm text-foreground/70 leading-relaxed">
-                        {item.message}
-                      </p>
-                    </div>
+                    <li
+                      key={item.field}
+                      className="flex items-start gap-2.5 text-[14px] sm:text-[15px] text-[hsl(var(--ink))] leading-relaxed"
+                    >
+                      <Sparkle
+                        className="w-3.5 h-3.5 mt-[3px] shrink-0 text-[hsl(var(--ambar))]"
+                        strokeWidth={1.6}
+                      />
+                      <span>{item.message}</span>
+                    </li>
                   ))}
-                </div>
-              </motion.div>
+                </ul>
+              </motion.section>
             )}
           </AnimatePresence>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link
-              href="/reflection"
-              className="flex items-center gap-3 p-4 bg-card border border-border rounded-2xl hover:border-primary/20 hover:shadow-md transition-all"
-            >
-              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Registro PEA</p>
-                <p className="text-xs text-muted-foreground">Registrar observación</p>
-              </div>
-            </Link>
-            <Link
-              href="/chat"
-              className="flex items-center gap-3 p-4 bg-card border border-border rounded-2xl hover:border-primary/20 hover:shadow-md transition-all"
-            >
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Chat con el Ego</p>
-                <p className="text-xs text-muted-foreground">Explorar más</p>
-              </div>
-            </Link>
-          </div>
+          {/* ── 7. Completar etapa / Cierre ritual ───── */}
+          {isCurrent && (
+            <motion.div {...fadeIn(0.1)}>
+              <button
+                type="button"
+                onClick={handleComplete}
+                disabled={isCompleting}
+                className={cn(
+                  "w-full inline-flex items-center justify-center gap-3 px-7 py-4 rounded-full",
+                  "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+                  "text-base font-medium tracking-wide",
+                  "shadow-md shadow-[hsl(var(--tierra-deep)/0.18)]",
+                  "motion-safe:hover:shadow-lg motion-safe:hover:-translate-y-[1px] motion-safe:transition-all motion-safe:duration-300",
+                  "disabled:opacity-60 disabled:cursor-not-allowed",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                )}
+              >
+                {isCompleting ? (
+                  <>
+                    {reduced ? (
+                      <span className="w-4 h-4 rounded-full border-2 border-[hsl(var(--paper))] border-t-transparent" />
+                    ) : (
+                      <span className="w-4 h-4 rounded-full border-2 border-[hsl(var(--paper))] border-t-transparent motion-safe:animate-spin" />
+                    )}
+                    Cerrando la etapa…
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" strokeWidth={2} />
+                    Completar etapa
+                  </>
+                )}
+              </button>
+              <p className="mt-3 text-center ec-meta italic text-[hsl(var(--ink-soft))]">
+                Al cerrar, se abre la siguiente etapa.
+              </p>
+            </motion.div>
+          )}
 
           {isCompleted && (
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center">
-              <Check className="w-8 h-8 text-primary mx-auto mb-3" />
-              <p className="font-display text-lg font-semibold text-foreground mb-1">
-                Etapa completada
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Completaste esta etapa. Puedes revisarla cuando quieras.
-              </p>
-              <Link
-                href="/journey"
-                className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-              >
-                Volver al mapa
-              </Link>
-            </div>
+            <motion.section
+              {...fadeIn(0)}
+              className="paper-surface rounded-3xl px-6 py-9 sm:px-10 sm:py-11 text-center relative overflow-hidden"
+              aria-label="Etapa completada"
+            >
+              <div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(50% 50% at 50% 0%, hsl(var(--ambar-soft) / 0.22) 0%, transparent 70%)",
+                }}
+              />
+              <div className="relative z-10">
+                <div className="w-12 h-12 rounded-full bg-[hsl(var(--paper-veil))] warm-border-soft mx-auto mb-4 flex items-center justify-center">
+                  <Check
+                    className="w-5 h-5 text-[hsl(var(--tierra-deep))]"
+                    strokeWidth={1.8}
+                  />
+                </div>
+                <p className="ec-eyebrow text-[hsl(var(--terracota))]">
+                  Cierre ritual
+                </p>
+                <p className="mt-2 ec-serif text-xl sm:text-2xl text-[hsl(var(--tierra-deep))] leading-snug">
+                  Esta etapa quedó observada.
+                </p>
+                <p className="mt-3 ec-serif-italic text-[15px] text-[hsl(var(--ink-soft))] max-w-md mx-auto">
+                  Puedes volver a leerla cuando quieras. Lo que aprendiste no se
+                  borra.
+                </p>
+                <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    href="/journey"
+                    className={cn(
+                      "inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full",
+                      "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+                      "text-sm font-medium",
+                      "motion-safe:hover:shadow-lg motion-safe:hover:-translate-y-[1px] motion-safe:transition-all motion-safe:duration-300",
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                    )}
+                  >
+                    Volver al mapa
+                  </Link>
+                  {currentStage > stageNumber && currentStage <= TOTAL_STAGES && (
+                    <Link
+                      href={`/journey/${currentStage}`}
+                      className={cn(
+                        "inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full",
+                        "warm-border bg-[hsl(var(--paper))] text-[hsl(var(--tierra-deep))]",
+                        "text-sm font-medium",
+                        "hover:bg-[hsl(var(--paper-veil))] motion-safe:transition-colors",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                      )}
+                    >
+                      Continuar
+                      <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </motion.section>
           )}
 
-          {isCurrent && (
-            <button
-              onClick={handleComplete}
-              disabled={isCompleting}
-              className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-semibold text-lg hover:bg-primary/90 hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-              {isCompleting ? (
-                <>
-                  <div className="w-5 h-5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-                  Completando...
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5" />
-                  Completar etapa
-                </>
-              )}
-            </button>
-          )}
-        </motion.div>
+          {/* ── 8. Enlaces contextuales ─────────────── */}
+          <motion.section
+            {...fadeIn(0.2)}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            aria-label="Enlaces contextuales"
+          >
+            <ContextLink
+              href="/chat"
+              Icon={MessageCircle}
+              label="Chat profundo"
+              hint="Conversa con el Guía."
+            />
+            <ContextLink
+              href="/reflection"
+              Icon={BookOpen}
+              label="Registro P-E-A libre"
+              hint="Para lo que aparece fuera de etapa."
+            />
+          </motion.section>
+        </div>
       </div>
     </AppLayout>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  BackToMap (shared)
+// ─────────────────────────────────────────────────────────────
+function BackToMap() {
+  return (
+    <Link
+      href="/journey"
+      aria-label="Volver al mapa"
+      className={cn(
+        "inline-flex items-center gap-2 px-3 py-2 rounded-full",
+        "ec-meta italic text-[hsl(var(--ink-soft))]",
+        "hover:text-[hsl(var(--tierra-deep))] motion-safe:transition-colors",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+      )}
+    >
+      <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.6} />
+      Volver al mapa
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  StageRitualHeader
+// ─────────────────────────────────────────────────────────────
+function StageRitualHeader({
+  stageNumber,
+  phaseName,
+  estimatedMinutes,
+  isSaving,
+  saveStatus,
+  filledCount,
+  totalRequired,
+  isCompleted,
+  reduced,
+}: {
+  stageNumber: number;
+  phaseName: string;
+  estimatedMinutes: number;
+  isSaving: boolean;
+  saveStatus: "idle" | "saved";
+  filledCount: number;
+  totalRequired: number;
+  isCompleted: boolean;
+  reduced: boolean;
+}) {
+  const stageDef = getStage(stageNumber);
+  const pct = Math.min(100, Math.round((filledCount / totalRequired) * 100));
+
+  return (
+    <motion.header
+      initial={reduced ? false : { opacity: 0, y: 10 }}
+      animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <BackToMap />
+        <SaveStatus
+          isSaving={isSaving}
+          saveStatus={saveStatus}
+          reduced={reduced}
+        />
+      </div>
+
+      <div className="paper-surface rounded-3xl px-6 py-6 sm:px-8 sm:py-7 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(50% 50% at 100% 0%, hsl(var(--ambar-soft) / 0.16) 0%, transparent 65%)",
+          }}
+        />
+        <div className="relative z-10 flex items-start gap-5">
+          <div className="shrink-0">
+            <StageNumeral n={stageNumber} total={TOTAL_STAGES} scale="md" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="ec-eyebrow text-[hsl(var(--terracota))]">
+              {phaseName} · Etapa {stageNumber}
+            </p>
+            <h1 className="mt-1.5 ec-serif text-xl sm:text-2xl lg:text-[26px] leading-snug text-[hsl(var(--tierra-deep))]">
+              {stageDef?.title ?? "Etapa"}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 ec-meta text-[hsl(var(--ink-soft))]">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" strokeWidth={1.6} />~
+                {estimatedMinutes} min
+              </span>
+              {!isCompleted && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block w-1 h-1 rounded-full bg-[hsl(var(--warm-line))]" />
+                  {filledCount}/{totalRequired} campos
+                </span>
+              )}
+              {isCompleted && (
+                <span className="inline-flex items-center gap-1.5 text-[hsl(var(--tierra-deep))]">
+                  <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                  Completada
+                </span>
+              )}
+            </div>
+            <div
+              className="mt-3 h-[2px] w-full rounded-full bg-[hsl(var(--warm-line-soft))] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={isCompleted ? 100 : pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progreso de campos requeridos"
+            >
+              <motion.div
+                className="h-full rounded-full bg-[hsl(var(--terracota))]"
+                initial={reduced ? false : { width: 0 }}
+                animate={{ width: `${isCompleted ? 100 : pct}%` }}
+                transition={{
+                  duration: reduced ? 0 : 0.7,
+                  ease: [0.22, 0.61, 0.36, 1],
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.header>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SaveStatus
+// ─────────────────────────────────────────────────────────────
+function SaveStatus({
+  isSaving,
+  saveStatus,
+  reduced,
+}: {
+  isSaving: boolean;
+  saveStatus: "idle" | "saved";
+  reduced: boolean;
+}) {
+  return (
+    <div
+      className="ec-meta italic text-[hsl(var(--ink-soft))] min-h-[20px] inline-flex items-center"
+      aria-live="polite"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isSaving && (
+          <motion.span
+            key="saving"
+            initial={reduced ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduced ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: reduced ? 0 : 0.25 }}
+            className="inline-flex items-center gap-1.5"
+          >
+            <span
+              className={cn(
+                "inline-block w-1.5 h-1.5 rounded-full bg-[hsl(var(--ambar))]",
+                !reduced && "motion-safe:animate-pulse",
+              )}
+            />
+            Guardando…
+          </motion.span>
+        )}
+        {!isSaving && saveStatus === "saved" && (
+          <motion.span
+            key="saved"
+            initial={reduced ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduced ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: reduced ? 0 : 0.25 }}
+            className="inline-flex items-center gap-1.5 text-[hsl(var(--tierra-deep))]"
+          >
+            <Check className="w-3 h-3" strokeWidth={2} />
+            Guardado
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PeaCard
+// ─────────────────────────────────────────────────────────────
+const ACCENT_HUE: Record<"terracota" | "ambar" | "tierra", string> = {
+  terracota: "var(--terracota)",
+  ambar: "var(--ambar)",
+  tierra: "var(--tierra-deep)",
+};
+
+function PeaCard({
+  icon: Icon,
+  label,
+  hint,
+  placeholder,
+  rows,
+  value,
+  disabled,
+  missing,
+  onChange,
+  accent,
+  filled,
+}: {
+  icon: typeof Eye;
+  label: string;
+  hint: string;
+  placeholder: string;
+  rows: number;
+  value: string;
+  disabled: boolean;
+  missing: boolean;
+  onChange: (v: string) => void;
+  accent: "terracota" | "ambar" | "tierra";
+  filled: boolean;
+}) {
+  const fieldId = `pea-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const hue = `hsl(${ACCENT_HUE[accent]})`;
+
+  return (
+    <div
+      className={cn(
+        "paper-surface rounded-3xl px-5 py-5 sm:px-6 sm:py-6 relative motion-safe:transition-all motion-safe:duration-300",
+        missing && "ring-1 ring-[hsl(var(--ambar)/0.55)]",
+      )}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <span
+          className="w-9 h-9 rounded-full inline-flex items-center justify-center shrink-0 warm-border-soft motion-safe:transition-colors"
+          style={{
+            background: filled ? hue : "hsl(var(--paper-veil))",
+            color: filled ? "hsl(var(--paper))" : hue,
+          }}
+        >
+          <Icon className="w-4 h-4" strokeWidth={1.7} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <label
+            htmlFor={fieldId}
+            className="ec-eyebrow"
+            style={{ color: hue }}
+          >
+            {label}
+          </label>
+          <p className="ec-meta italic text-[hsl(var(--ink-soft))] mt-0.5">
+            {hint}
+          </p>
+        </div>
+        {filled && (
+          <Check
+            className="w-3.5 h-3.5 shrink-0 text-[hsl(var(--ink-soft))]"
+            strokeWidth={2}
+            aria-label="Campo completado"
+          />
+        )}
+      </div>
+
+      <textarea
+        id={fieldId}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        disabled={disabled}
+        aria-invalid={missing}
+        className={cn(
+          "w-full bg-transparent border-0 outline-none resize-none",
+          "text-[15px] sm:text-base text-[hsl(var(--ink))] placeholder:text-[hsl(var(--ink-soft))]/55",
+          "leading-relaxed",
+          disabled && "cursor-not-allowed opacity-70",
+        )}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Connector (visual link between PEA cards)
+// ─────────────────────────────────────────────────────────────
+function Connector() {
+  return (
+    <div className="flex justify-center py-0.5" aria-hidden>
+      <span
+        className="block w-px h-5"
+        style={{ background: "hsl(var(--warm-line))" }}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ContextLink
+// ─────────────────────────────────────────────────────────────
+function ContextLink({
+  href,
+  Icon,
+  label,
+  hint,
+}: {
+  href: string;
+  Icon: typeof BookOpen;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "paper-surface rounded-2xl px-5 py-4 flex items-center gap-4 group",
+        "hover:bg-[hsl(var(--paper-veil))] motion-safe:transition-colors",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+      )}
+    >
+      <span className="shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center bg-[hsl(var(--paper-veil))] warm-border-soft text-[hsl(var(--tierra-deep))]">
+        <Icon className="w-4 h-4" strokeWidth={1.6} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="ec-serif text-[15px] sm:text-base text-[hsl(var(--tierra-deep))]">
+          {label}
+        </p>
+        <p className="ec-meta text-[hsl(var(--ink-soft))] mt-0.5 truncate">
+          {hint}
+        </p>
+      </div>
+      <ArrowRight
+        className="w-4 h-4 shrink-0 text-[hsl(var(--ink-soft))] group-hover:text-[hsl(var(--tierra-deep))] motion-safe:group-hover:translate-x-0.5 motion-safe:transition-all"
+        strokeWidth={1.6}
+      />
+    </Link>
   );
 }
