@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { useStages, validateReflection, type ValidationResult, type MissingField } from "@/lib/stage-context";
 import { getStage, TOTAL_STAGES, getPhaseForStage } from "@/lib/stages";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, AlertCircle } from "lucide-react";
+import { ArrowLeft, Check, Clock, Lock, MessageSquare, BookOpen, AlertCircle, Quote, Target } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 function Triquetra({ className }: { className?: string }) {
@@ -206,6 +206,15 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
             </p>
           </div>
 
+          {stageDef.dailyPhrase && (
+            <figure className="relative bg-primary/5 border-l-4 border-primary rounded-r-2xl rounded-l-md px-6 py-5">
+              <Quote className="absolute top-3 right-4 w-5 h-5 text-primary/30" />
+              <blockquote className="font-display text-base md:text-lg italic text-foreground/85 leading-relaxed pr-6">
+                {stageDef.dailyPhrase}
+              </blockquote>
+            </figure>
+          )}
+
           <div className="bg-card border border-border rounded-2xl p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-muted-foreground" />
@@ -213,6 +222,20 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
             </div>
             <span className="font-semibold">~{stageDef.estimatedMinutes} min</span>
           </div>
+
+          {stageDef.visibleObjective && (
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-4 h-4 text-primary" />
+                <p className="text-xs font-semibold tracking-widest uppercase text-primary">
+                  Objetivo de esta etapa
+                </p>
+              </div>
+              <p className="text-foreground leading-relaxed">
+                {stageDef.visibleObjective}
+              </p>
+            </div>
+          )}
 
           <div className="bg-card border border-border rounded-2xl p-8">
             <h2 className="font-display text-xl font-semibold mb-2">
@@ -230,6 +253,22 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
             <p className="text-foreground leading-relaxed">
               {stageDef.completionHint}
             </p>
+
+            {stageDef.requiredData && stageDef.requiredData.length > 0 && (
+              <div className="mt-5 pt-5 border-t border-accent/20">
+                <p className="text-xs font-medium text-foreground/70 mb-3">
+                  Antes de completar, observa si registraste…
+                </p>
+                <ul className="space-y-2">
+                  {stageDef.requiredData.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/80 leading-relaxed">
+                      <span className="text-accent mt-0.5 shrink-0">·</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="bg-card border border-border rounded-2xl p-6 space-y-5">

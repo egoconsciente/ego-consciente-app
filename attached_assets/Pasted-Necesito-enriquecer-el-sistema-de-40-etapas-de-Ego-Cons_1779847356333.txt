@@ -1,0 +1,97 @@
+Necesito enriquecer el sistema de 40 etapas de Ego Consciente sin romper el flujo actual.
+
+Contexto técnico:
+Ya auditamos artifacts/ego-consciente/src/lib/stages.ts.
+La app usa estos campos actuales y NO deben cambiar de nombre:
+- stageNumber
+- title
+- shortDescription
+- estimatedMinutes
+- egoIntro
+- instructionText
+- completionHint
+- phase
+
+Tampoco deben cambiar:
+- STAGES
+- TOTAL_STAGES
+- PHASES
+- getStage
+- getPhaseForStage
+- isPhaseStart
+
+Objetivo:
+Agregar metadata opcional a StageDefinition y renderizarla de forma condicional en stage-detail.tsx para que cada etapa se sienta más profunda, clara y preparada para el futuro AOE/libro personalizado.
+
+Cambios requeridos:
+
+1. En artifacts/ego-consciente/src/lib/stages.ts, extender la interfaz StageDefinition agregando campos opcionales:
+
+visibleObjective?: string;
+internalSignal?: string;
+bookSignal?: string;
+requiredData?: string[];
+dailyPhrase?: string;
+
+2. No renombrar ni eliminar ningún campo existente.
+
+3. Poblar estos nuevos campos en las 40 etapas. No tienen que ser largos. Deben ser precisos, sobrios y alineados al canon de Ego Consciente.
+
+Reglas de voz:
+- No diagnosticar.
+- No etiquetar al usuario.
+- No decir “eres X”.
+- Describir operación, no identidad.
+- Usar lenguaje de patrón: “tu sistema tiende a…”, “observa cómo opera…”, “una parte de ti…”.
+- Mantener P-E-A como estructura central.
+- Mantener temporalidad y agencia cuando aplique.
+- Evitar autoayuda genérica.
+- Evitar espiritualidad grandilocuente.
+- No prometer transformación absoluta.
+
+4. Estructura sugerida de los nuevos campos:
+
+visibleObjective:
+Lo que el usuario entiende que va a observar o practicar.
+
+internalSignal:
+Qué señal interna recoge esta etapa para el sistema. No debe sonar invasivo ni tipológico.
+
+bookSignal:
+Qué material podría alimentar después el libro personalizado. Debe redactarse como señal editorial interna, no como texto visible demasiado técnico.
+
+requiredData:
+Array breve con los mínimos esperados. Ejemplo:
+["pensamiento recurrente", "emoción asociada", "acción o evitación observable"]
+
+dailyPhrase:
+Una frase breve, penetrante y elegante, estilo Ego Consciente. Debe poder mostrarse como cita dentro de la etapa.
+
+5. En artifacts/ego-consciente/src/pages/stage-detail.tsx, renderizar estos campos de forma condicional:
+
+- dailyPhrase: mostrar como una cita destacada cerca del inicio de la etapa.
+- visibleObjective: mostrar como “Objetivo de esta etapa”.
+- requiredData: mostrar como “Antes de completar, observa si registraste…”
+- internalSignal y bookSignal: por ahora NO mostrarlos si se sienten demasiado internos. Si los muestras, que sea en una sección discreta o solo en modo desarrollo. Mi preferencia: no mostrarlos al usuario todavía.
+
+6. No tocar:
+- completeStageWithData
+- validateReflection
+- Supabase
+- auth
+- routing
+- journey map
+- dashboard
+- progress
+
+7. Mantener build limpio.
+
+8. Entregar reporte final con:
+A. Archivos modificados
+B. Campos agregados
+C. Qué se muestra ahora en la pantalla de etapa
+D. Qué NO se tocó
+E. Cómo probar manualmente
+
+Criterio de éxito:
+La pantalla de etapa debe sentirse más clara, más profunda y más propia de Ego Consciente, sin romper que el usuario pueda completar una etapa y avanzar a la siguiente.
