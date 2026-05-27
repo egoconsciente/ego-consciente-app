@@ -1,0 +1,70 @@
+La prueba real mostró que el flujo de etapas funciona, pero reflection_payload NO se está guardando.
+
+Evidencia:
+En Supabase, stage_progress muestra:
+- etapa 1: status = completed, user_confirmed_complete = true
+- etapa 2: status = completed, user_confirmed_complete = true
+- etapa 3: status = in_progress
+Pero reflection_payload aparece como {} en las etapas completadas.
+
+Objetivo:
+Corregir la persistencia de reflection_payload sin romper el flujo actual.
+
+Requisitos:
+
+1. Revisar artifacts/ego-consciente/src/pages/stage-detail.tsx:
+   - Confirmar que buildReflectionPayload realmente se llama con los valores actuales.
+   - Confirmar que el objeto resultante no está vacío.
+   - Confirmar que se pasa a saveReflection y completeStageWithData.
+
+2. Revisar artifacts/ego-consciente/src/lib/stage-context.tsx:
+   - Confirmar que saveReflection acepta reflectionPayload opcional.
+   - Confirmar que completeStageWithData acepta reflectionPayload opcional.
+   - Confirmar que el payload enviado a Supabase usa exactamente la columna:
+     reflection_payload
+   - No usar reflectionPayload como nombre de columna.
+
+3. Agregar console.log temporal o debug claro en desarrollo:
+   - "REFLECTION PAYLOAD BUILT"
+   - "REFLECTION PAYLOAD SENT TO SUPABASE"
+   - "REFLECTION PAYLOAD SAVE ERROR"
+   para ver si se construye y si Supabase lo rechaza.
+
+4. Asegurar que en la llamada a Supabase se incluya:
+   reflection_payload: reflectionPayload
+
+5. Revisar si hay algún update posterior que esté sobrescribiendo reflection_payload con {}.
+   Si existe, corregirlo para que no reemplace un payload no vacío por {}.
+
+6. Mantener intactos:
+   - status
+   - completed_at
+   - user_confirmed_complete
+   - thought
+   - emotion
+   - action
+   - notes
+   - completion_ready
+   - completion_missing
+
+7. No tocar:
+   - auth
+   - login/register
+   - journey map
+   - dashboard
+   - progress
+   - validateReflection
+   - Supabase schema
+
+8. Build limpio.
+
+9. Entregar reporte final con:
+A. causa raíz
+B. archivos modificados
+C. dónde se construye el payload
+D. dónde se envía a Supabase
+E. cómo evitar que se sobrescriba con {}
+F. cómo probar en Supabase con jsonb_pretty(reflection_payload)
+
+Criterio de éxito:
+Después de completar una etapa, reflection_payload debe dejar de ser {} y contener stageNumber, stageTitle, phase, dailyPhrase, visibleObjective, requiredData, responses, completionContext e internal.

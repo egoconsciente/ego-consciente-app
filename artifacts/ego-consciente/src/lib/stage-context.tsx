@@ -202,14 +202,29 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       if (data.emotion !== undefined) updatePayload.emotion = data.emotion;
       if (data.action !== undefined) updatePayload.action = data.action;
       if (data.notes !== undefined) updatePayload.notes = data.notes;
-      if (reflectionPayload !== undefined) updatePayload.reflection_payload = reflectionPayload;
+      if (reflectionPayload !== undefined) {
+        updatePayload.reflection_payload = reflectionPayload;
+        if (import.meta.env.DEV) {
+          console.log("REFLECTION PAYLOAD SENT TO SUPABASE (autosave)", {
+            stageNumber,
+            keys: Object.keys(reflectionPayload),
+            payload: reflectionPayload,
+          });
+        }
+      }
 
       const { error } = await supabase
         .from("stage_progress")
         .upsert(updatePayload, { onConflict: "user_id,stage_number" });
 
       if (error) {
-        console.error("[StageContext] Error saving reflection:", error);
+        console.error("REFLECTION PAYLOAD SAVE ERROR (autosave)", {
+          stageNumber,
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
         return false;
       }
 
@@ -299,25 +314,11 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       try {
         const now = new Date().toISOString();
 
-        const { error: updateError } = await supabase
-          .from("stage_progress")
-          .update({
-            status: "completed",
-            completed_at: now,
-            user_confirmed_complete: true,
-            updated_at: now,
-          })
-          .eq("user_id", user.id)
-          .eq("stage_number", stageNumber);
-
-        if (updateError) {
-          console.error("UPDATE ERROR", updateError);
-          return { success: false };
-        }
-
-        console.log("STAGE COMPLETED", stageNumber);
-
-        const reflectionUpdate: Record<string, unknown> = {
+        const completionUpdate: Record<string, unknown> = {
+          status: "completed",
+          completed_at: now,
+          user_confirmed_complete: true,
+          updated_at: now,
           thought: data.thought,
           emotion: data.emotion,
           action: data.action,
@@ -326,17 +327,38 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
           completion_missing: [],
         };
         if (reflectionPayload !== undefined) {
-          reflectionUpdate.reflection_payload = reflectionPayload;
+          completionUpdate.reflection_payload = reflectionPayload;
+          if (import.meta.env.DEV) {
+            console.log("REFLECTION PAYLOAD SENT TO SUPABASE (completion)", {
+              stageNumber,
+              keys: Object.keys(reflectionPayload),
+              payload: reflectionPayload,
+            });
+          }
+        } else {
+          console.warn("[StageContext] completeStageWithData called without reflectionPayload — column will not be updated", { stageNumber });
         }
 
-        supabase
+        const { error: updateError } = await supabase
           .from("stage_progress")
-          .update(reflectionUpdate)
+          .update(completionUpdate)
           .eq("user_id", user.id)
-          .eq("stage_number", stageNumber)
-          .then(({ error }) => {
-            if (error) console.warn("Reflection columns save skipped (patch may not be applied):", error.message);
+          .eq("stage_number", stageNumber);
+
+        if (updateError) {
+          console.error("REFLECTION PAYLOAD SAVE ERROR (completion)", {
+            stageNumber,
+            message: updateError.message,
+            code: updateError.code,
+            details: updateError.details,
+            hint: updateError.hint,
           });
+          return { success: false };
+        }
+
+        if (import.meta.env.DEV) {
+          console.log("STAGE COMPLETED — single atomic write succeeded", { stageNumber });
+        }
 
         if (stageNumber < TOTAL_STAGES) {
           const { error: insertError } = await supabase
