@@ -64,4 +64,4 @@ externalPort = 5173
 
 [nix]
 channel = "stable-25_05"
-packages = ["zip"]
+packages = ["zip", "python3"]
