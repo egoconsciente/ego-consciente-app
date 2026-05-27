@@ -1,0 +1,1 @@
+- [Ego Consciente onboarding schema](ego-consciente-onboarding-schema.md) — `incongruence_area` is interpolated into ego-engine narration; persist "otra" as the free-text detail, not the literal.

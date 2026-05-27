@@ -1,37 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
+import { Compass, Clock, Sparkle } from "lucide-react";
+import { EcSigil } from "@/components/ec";
+import { respectsReducedMotion } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
-function Triquetra({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      className={className}
-    >
-      {[0, 120, 240].map((angle) => (
-        <ellipse
-          key={angle}
-          cx="50"
-          cy="32"
-          rx="16"
-          ry="28"
-          transform={`rotate(${angle} 50 52)`}
-        />
-      ))}
-    </svg>
-  );
-}
+type OnboardingSummary = {
+  reason: string | null;
+  incongruence_area: string | null;
+  daily_time: string | null;
+};
 
 export default function Portal() {
   const { user, markPortalComplete } = useAuth();
   const [, setLocation] = useLocation();
+  const reduced = respectsReducedMotion();
+
   const [isStarting, setIsStarting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [summary, setSummary] = useState<OnboardingSummary | null>(null);
+
+  // Load onboarding summary — best-effort, never blocks.
+  useEffect(() => {
+    let active = true;
+    if (!user) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("onboarding_responses")
+        .select("reason,incongruence_area,daily_time")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!active) return;
+      if (error) {
+        console.warn("[Portal] No se pudo cargar resumen:", error.message);
+        return;
+      }
+      if (data) {
+        setSummary({
+          reason: data.reason ?? null,
+          incongruence_area: data.incongruence_area ?? null,
+          daily_time: data.daily_time ?? null,
+        });
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const navigateToDashboard = () => {
     console.log("[Portal] Redirecting to /dashboard");
@@ -43,7 +61,7 @@ export default function Portal() {
     if (!user || isStarting) return;
     setIsStarting(true);
     setErrorMsg(null);
-    console.log("[Portal] Start process clicked");
+    console.log("[Portal] Cross threshold clicked");
 
     const fallbackTimer = setTimeout(() => {
       console.log("[Portal] Fallback timeout — forcing navigation");
@@ -51,38 +69,42 @@ export default function Portal() {
     }, 4000);
 
     try {
-      console.log("[Portal] Writing journey_state");
       const now = new Date().toISOString();
 
-      const { error: journeyError } = await supabase.from("journey_state").upsert(
-        {
-          user_id: user.id,
-          intro_completed: true,
-          portal_completed: true,
-          process_started_at: now,
-        },
-        { onConflict: "user_id" }
-      );
+      const { error: journeyError } = await supabase
+        .from("journey_state")
+        .upsert(
+          {
+            user_id: user.id,
+            intro_completed: true,
+            portal_completed: true,
+            process_started_at: now,
+          },
+          { onConflict: "user_id" },
+        );
 
       if (journeyError) {
         clearTimeout(fallbackTimer);
         console.error("[Portal] journey_state error:", journeyError.message);
-        setErrorMsg(`Error al iniciar (${journeyError.code || "desconocido"}). Revisa la consola.`);
+        setErrorMsg(
+          `Error al iniciar (${journeyError.code || "desconocido"}). Revisa la consola.`,
+        );
         setIsStarting(false);
         return;
       }
 
-      console.log("[Portal] Initializing stage 1");
-      const { error: stageError } = await supabase.from("stage_progress").upsert(
-        {
-          user_id: user.id,
-          stage_number: 1,
-          status: "in_progress",
-          started_at: now,
-          updated_at: now,
-        },
-        { onConflict: "user_id,stage_number" }
-      );
+      const { error: stageError } = await supabase
+        .from("stage_progress")
+        .upsert(
+          {
+            user_id: user.id,
+            stage_number: 1,
+            status: "in_progress",
+            started_at: now,
+            updated_at: now,
+          },
+          { onConflict: "user_id,stage_number" },
+        );
 
       if (stageError) {
         console.error("[Portal] stage_progress init error:", stageError.message);
@@ -98,95 +120,249 @@ export default function Portal() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      <div className="fixed top-[-20%] right-[-20%] w-96 h-96 bg-primary/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-[-20%] left-[-20%] w-96 h-96 bg-accent/6 rounded-full blur-3xl pointer-events-none" />
+  const hasAnySummary =
+    summary &&
+    (summary.reason || summary.incongruence_area || summary.daily_time);
 
-      <div className="relative z-10 flex flex-col items-center text-center max-w-md">
+  return (
+    <div className="min-h-screen bg-[hsl(var(--paper))] text-[hsl(var(--ink))] flex flex-col items-center justify-center px-5 sm:px-6 py-12 relative overflow-hidden">
+      {/* Ceremonial aura */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(55% 45% at 50% 20%, hsl(var(--ambar-soft) / 0.28) 0%, transparent 65%), radial-gradient(80% 65% at 50% 110%, hsl(var(--paper-altar)) 0%, transparent 55%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute top-12 left-1/2 -translate-x-1/2 w-16 h-px bg-[hsl(var(--warm-line))] opacity-70"
+      />
+      <div
+        aria-hidden
+        className="absolute bottom-12 left-1/2 -translate-x-1/2 w-16 h-px bg-[hsl(var(--warm-line))] opacity-70"
+      />
+
+      <div className="relative z-10 flex flex-col items-center text-center max-w-xl w-full">
+        {/* Living sigil */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={reduced ? false : { opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-12"
+          transition={{ duration: reduced ? 0 : 1.4, ease: [0.22, 0.61, 0.36, 1] }}
+          className="relative mb-10 sm:mb-12 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center"
         >
-          <div className="relative">
-            <Triquetra className="w-28 h-28 text-primary" />
-            <motion.div
-              className="absolute inset-0 w-28 h-28"
-              animate={{ opacity: [0.3, 0.7, 0.3] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Triquetra className="w-28 h-28 text-primary blur-md" />
-            </motion.div>
-          </div>
+          {!reduced && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{ border: "1px solid hsl(var(--warm-line) / 0.55)" }}
+              animate={{ scale: [1, 1.07, 1], opacity: [0.5, 0.9, 0.5] }}
+              transition={{
+                duration: 7,
+                repeat: Infinity,
+                ease: [0.45, 0.05, 0.55, 0.95],
+              }}
+            />
+          )}
+          {!reduced && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-4 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, hsl(var(--ambar-soft) / 0.40) 0%, transparent 70%)",
+              }}
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+          <EcSigil
+            variant="hairline"
+            size={96}
+            className="relative text-[hsl(var(--tierra-deep))]"
+          />
         </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+        {/* Eyebrow + title */}
+        <motion.p
+          initial={reduced ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="font-display text-3xl md:text-4xl font-semibold text-foreground mb-4"
+          transition={{ delay: reduced ? 0 : 0.4, duration: reduced ? 0 : 0.7 }}
+          className="ec-eyebrow text-[hsl(var(--terracota))]"
         >
           El umbral
+        </motion.p>
+
+        <motion.h1
+          initial={reduced ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: reduced ? 0 : 0.55, duration: reduced ? 0 : 0.8 }}
+          className={cn(
+            "mt-3 ec-serif text-[hsl(var(--tierra-deep))]",
+            "text-3xl sm:text-5xl leading-[1.1] tracking-[-0.01em]",
+          )}
+        >
+          40 etapas
+          <br />
+          de observación.
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 12 }}
+          initial={reduced ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-lg text-muted-foreground leading-relaxed mb-4"
+          transition={{ delay: reduced ? 0 : 0.75, duration: reduced ? 0 : 0.8 }}
+          className={cn(
+            "mt-7 sm:mt-8 max-w-md",
+            "ec-serif-italic text-[hsl(var(--ink))]",
+            "text-lg sm:text-xl leading-[1.55]",
+          )}
         >
-          Lo que sigue son 40 etapas de observación.
+          No vamos a diagnosticarte. No vamos a etiquetarte.
+          <br />
+          Vamos a observar cómo opera tu sistema.
         </motion.p>
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-base text-muted-foreground leading-relaxed mb-12"
-        >
-          No vas a recibir respuestas. Vas a aprender a hacerte las preguntas
-          correctas. Cada etapa, un pensamiento. Una emoción. Una acción. Un paso
-          mínimo congruente.
-        </motion.p>
+
+        {/* Summary chips — only if onboarding data exists */}
+        {hasAnySummary && (
+          <motion.section
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduced ? 0 : 0.95, duration: reduced ? 0 : 0.7 }}
+            className="mt-10 w-full"
+            aria-label="Resumen de calibración inicial"
+          >
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <span className="h-px w-8 bg-[hsl(var(--warm-line))]" />
+              <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">
+                Lo que trajiste
+              </p>
+              <span className="h-px w-8 bg-[hsl(var(--warm-line))]" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {summary?.incongruence_area && (
+                <SummaryChip
+                  Icon={Compass}
+                  label="Área inicial"
+                  value={summary.incongruence_area}
+                />
+              )}
+              {summary?.daily_time && (
+                <SummaryChip
+                  Icon={Clock}
+                  label="Tiempo diario"
+                  value={summary.daily_time}
+                />
+              )}
+              {summary?.reason && (
+                <SummaryChip
+                  Icon={Sparkle}
+                  label="Foco de llegada"
+                  value={truncate(summary.reason, 56)}
+                />
+              )}
+            </div>
+          </motion.section>
+        )}
 
         {errorMsg && (
           <motion.p
-            initial={{ opacity: 0 }}
+            initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mb-6 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-center leading-relaxed"
+            transition={{ duration: reduced ? 0 : 0.4 }}
+            role="alert"
+            className="mt-8 text-sm text-[hsl(var(--terracota))] bg-[hsl(var(--terracota-soft)/0.15)] warm-border-soft rounded-2xl px-4 py-3 leading-relaxed"
           >
             {errorMsg}
           </motion.p>
         )}
 
+        {/* CTA */}
         <motion.button
-          initial={{ opacity: 0, y: 10 }}
+          initial={reduced ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.0 }}
+          transition={{ delay: reduced ? 0 : 1.1, duration: reduced ? 0 : 0.8 }}
           onClick={handleStart}
           disabled={isStarting}
-          className="px-12 py-5 bg-primary text-primary-foreground rounded-2xl font-semibold text-lg hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+          className={cn(
+            "mt-10 sm:mt-12 group inline-flex items-center justify-center gap-3",
+            "px-10 py-5 rounded-full",
+            "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+            "text-base sm:text-lg font-medium tracking-wide",
+            "shadow-lg shadow-[hsl(var(--tierra-deep)/0.22)]",
+            "hover:shadow-xl hover:-translate-y-[1px] transition-all duration-300",
+            "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+          )}
         >
           {isStarting ? (
             <>
-              <div className="w-5 h-5 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
-              Iniciando...
+              <span className="w-5 h-5 rounded-full border-2 border-[hsl(var(--paper))] border-t-transparent animate-spin" />
+              <span>Cruzando…</span>
             </>
           ) : (
-            "Comenzar el proceso"
+            <>
+              <span>Cruzar el umbral</span>
+              <span
+                aria-hidden
+                className="transition-transform duration-300 group-hover:translate-x-0.5"
+              >
+                →
+              </span>
+            </>
           )}
         </motion.button>
 
         <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.4 }}
-          className="mt-8 text-xs text-muted-foreground"
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: 0.65 }}
+          transition={{ delay: reduced ? 0 : 1.4, duration: reduced ? 0 : 0.6 }}
+          className="mt-8 ec-meta italic text-[hsl(var(--ink-soft))]"
         >
-          "El primer paso no es avanzar. Es detenerte a observar."
+          El primer paso no es avanzar. Es detenerte a observar.
         </motion.p>
       </div>
     </div>
   );
+}
+
+function SummaryChip({
+  Icon,
+  label,
+  value,
+}: {
+  Icon: typeof Compass;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "paper-surface rounded-2xl px-4 py-3.5 text-left",
+        "flex items-start gap-3",
+      )}
+    >
+      <span
+        className={cn(
+          "shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-full",
+          "bg-[hsl(var(--paper-veil))] warm-border-soft",
+          "text-[hsl(var(--tierra-deep))]",
+        )}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.6} />
+      </span>
+      <div className="min-w-0">
+        <p className="ec-eyebrow text-[hsl(var(--ink-soft))]">{label}</p>
+        <p className="ec-serif text-[15px] text-[hsl(var(--tierra-deep))] mt-0.5 break-words">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function truncate(s: string, n: number): string {
+  if (s.length <= n) return s;
+  return `${s.slice(0, n).trimEnd()}…`;
 }
