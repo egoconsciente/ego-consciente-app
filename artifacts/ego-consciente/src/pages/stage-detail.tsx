@@ -33,6 +33,44 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [action, setAction] = useState("");
   const [notes, setNotes] = useState("");
 
+  const valuesRef = useRef({ thought: "", emotion: "", action: "", notes: "" });
+  useEffect(() => {
+    valuesRef.current = { thought, emotion, action, notes };
+  }, [thought, emotion, action, notes]);
+
+  const buildReflectionPayload = useCallback(
+    (responses: { thought: string; emotion: string; action: string; notes: string }, opts: { completed: boolean }): Record<string, unknown> => {
+      if (!stageDef) return {};
+      const payload: Record<string, unknown> = {
+        stageNumber: stageDef.stageNumber,
+        stageTitle: stageDef.title,
+        phase: phase.name,
+        dailyPhrase: stageDef.dailyPhrase ?? null,
+        visibleObjective: stageDef.visibleObjective ?? null,
+        requiredData: stageDef.requiredData ?? [],
+        responses: {
+          thought: responses.thought,
+          emotion: responses.emotion,
+          action: responses.action,
+          notes: responses.notes,
+        },
+        completionContext: {
+          completedAt: opts.completed ? new Date().toISOString() : null,
+          source: "stage-detail",
+          userConfirmedComplete: opts.completed,
+        },
+      };
+      if (stageDef.internalSignal || stageDef.bookSignal) {
+        payload.internal = {
+          internalSignal: stageDef.internalSignal ?? null,
+          bookSignal: stageDef.bookSignal ?? null,
+        };
+      }
+      return payload;
+    },
+    [stageDef, phase.name]
+  );
+
   const prevStageRef = useRef<number | null>(null);
   useEffect(() => {
     if (prevStageRef.current !== stageNumber) {
@@ -54,7 +92,9 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       saveTimersRef.current[field] = setTimeout(async () => {
         activeSavesRef.current++;
         setIsSaving(true);
-        await saveReflection(stageNumber, { [field]: value });
+        const current = { ...valuesRef.current, [field]: value };
+        const payload = buildReflectionPayload(current, { completed: false });
+        await saveReflection(stageNumber, { [field]: value }, payload);
         activeSavesRef.current--;
         if (activeSavesRef.current === 0) {
           setIsSaving(false);
@@ -63,7 +103,7 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
         }
       }, 800);
     },
-    [stageNumber, saveReflection]
+    [stageNumber, saveReflection, buildReflectionPayload]
   );
 
   const handleFieldChange = (field: string, value: string, setter: (v: string) => void) => {
@@ -79,8 +119,9 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       clearTimeout(saveTimersRef.current[key]);
       delete saveTimersRef.current[key];
     }
-    await saveReflection(stageNumber, { thought, emotion, action, notes });
-  }, [stageNumber, thought, emotion, action, notes, saveReflection]);
+    const payload = buildReflectionPayload({ thought, emotion, action, notes }, { completed: false });
+    await saveReflection(stageNumber, { thought, emotion, action, notes }, payload);
+  }, [stageNumber, thought, emotion, action, notes, saveReflection, buildReflectionPayload]);
 
   if (!stageDef) {
     return (
@@ -150,7 +191,8 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
     setIsCompleting(true);
     try {
       await flushPendingSaves();
-      const result = await completeStageWithData(stageNumber, localData);
+      const completionPayload = buildReflectionPayload(localData, { completed: true });
+      const result = await completeStageWithData(stageNumber, localData, completionPayload);
       if (result.success) {
         setInterventionMissing([]);
         console.log("[StageDetail] Navigating to journey map");

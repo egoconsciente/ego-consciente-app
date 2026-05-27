@@ -1,0 +1,91 @@
+Necesito conectar la pantalla enriquecida de etapas con la columna reflection_payload en Supabase.
+
+Contexto:
+Ya existe en Supabase:
+public.stage_progress.reflection_payload jsonb DEFAULT '{}'::jsonb NOT NULL
+
+También ya existe el patch documentado:
+supabase/stage_progress_reflection_payload_patch.sql
+
+La app ya tiene etapas enriquecidas en:
+artifacts/ego-consciente/src/lib/stages.ts
+
+Y stage-detail.tsx ya renderiza:
+- dailyPhrase
+- visibleObjective
+- requiredData
+
+Objetivo:
+Cuando el usuario guarde o complete una etapa, además de los campos existentes thought/emotion/action/notes, guardar un objeto JSON estructurado en reflection_payload.
+
+No romper el flujo actual.
+
+Requisitos:
+
+1. Revisar cómo stage-detail.tsx guarda actualmente:
+- thought
+- emotion
+- action
+- notes
+- completion_ready
+- completion_missing
+
+2. Mantener intactos esos campos actuales.
+
+3. Agregar reflection_payload al guardado/autosave y/o al completeStageWithData, con una estructura mínima:
+
+{
+  "stageNumber": number,
+  "stageTitle": string,
+  "phase": string,
+  "dailyPhrase": string | null,
+  "visibleObjective": string | null,
+  "requiredData": string[],
+  "responses": {
+    "thought": string,
+    "emotion": string,
+    "action": string,
+    "notes": string
+  },
+  "completionContext": {
+    "completedAt": string | null,
+    "source": "stage-detail",
+    "userConfirmedComplete": boolean
+  }
+}
+
+4. Si existen internalSignal y bookSignal en la etapa, incluirlos en una sección interna:
+
+"internal": {
+  "internalSignal": string | null,
+  "bookSignal": string | null
+}
+
+5. No mostrar internalSignal ni bookSignal al usuario.
+
+6. No cambiar validateReflection todavía. Sigue validando solo PEA:
+- thought
+- emotion
+- action
+
+7. No cambiar Supabase schema.
+
+8. No tocar auth, register, login, auth-callback, journey, dashboard ni progress.
+
+9. Si completeStageWithData está en stage-context.tsx y necesita recibir reflection_payload, hacerlo de forma compatible:
+- agregar parámetro opcional
+- no romper llamadas existentes
+- preservar comportamiento anterior si no se manda payload
+
+10. Build limpio.
+
+11. Entregar reporte final con:
+A. Archivos modificados
+B. Dónde se construye reflection_payload
+C. Cuándo se guarda
+D. Qué campos conserva
+E. Qué NO se tocó
+F. Cómo probar manualmente etapa 2 → etapa 3 y verificar reflection_payload en Supabase
+
+Criterio de éxito:
+Después de completar una etapa, Supabase debe mostrar reflection_payload con stageNumber, stageTitle, phase, dailyPhrase, visibleObjective, requiredData, responses e internal.

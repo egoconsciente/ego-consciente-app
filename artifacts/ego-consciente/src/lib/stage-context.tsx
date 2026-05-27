@@ -41,8 +41,8 @@ interface StageContextType {
   isLoading: boolean;
   getCurrentStageDefinition: () => StageDefinition | undefined;
   getStageProgress: (stageNumber: number) => StageProgress;
-  completeStageWithData: (stageNumber: number, data: StageReflection) => Promise<{ success: boolean; validation?: ValidationResult }>;
-  saveReflection: (stageNumber: number, data: Partial<StageReflection>) => Promise<boolean>;
+  completeStageWithData: (stageNumber: number, data: StageReflection, reflectionPayload?: Record<string, unknown>) => Promise<{ success: boolean; validation?: ValidationResult }>;
+  saveReflection: (stageNumber: number, data: Partial<StageReflection>, reflectionPayload?: Record<string, unknown>) => Promise<boolean>;
   recordValidationFailure: (stageNumber: number, missing: string[]) => Promise<void>;
   isProcessComplete: boolean;
   reload: () => Promise<void>;
@@ -189,7 +189,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
   }, [currentStage]);
 
   const saveReflection = useCallback(
-    async (stageNumber: number, data: Partial<StageReflection>): Promise<boolean> => {
+    async (stageNumber: number, data: Partial<StageReflection>, reflectionPayload?: Record<string, unknown>): Promise<boolean> => {
       if (!user) return false;
 
       const updatePayload: Record<string, unknown> = {
@@ -202,6 +202,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       if (data.emotion !== undefined) updatePayload.emotion = data.emotion;
       if (data.action !== undefined) updatePayload.action = data.action;
       if (data.notes !== undefined) updatePayload.notes = data.notes;
+      if (reflectionPayload !== undefined) updatePayload.reflection_payload = reflectionPayload;
 
       const { error } = await supabase
         .from("stage_progress")
@@ -269,7 +270,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeStageWithData = useCallback(
-    async (stageNumber: number, data: StageReflection): Promise<{ success: boolean; validation?: ValidationResult }> => {
+    async (stageNumber: number, data: StageReflection, reflectionPayload?: Record<string, unknown>): Promise<{ success: boolean; validation?: ValidationResult }> => {
       if (!user) return { success: false };
 
       console.log("START COMPLETE STAGE", stageNumber, "current:", currentStage);
@@ -316,16 +317,21 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
 
         console.log("STAGE COMPLETED", stageNumber);
 
+        const reflectionUpdate: Record<string, unknown> = {
+          thought: data.thought,
+          emotion: data.emotion,
+          action: data.action,
+          notes: data.notes,
+          completion_ready: true,
+          completion_missing: [],
+        };
+        if (reflectionPayload !== undefined) {
+          reflectionUpdate.reflection_payload = reflectionPayload;
+        }
+
         supabase
           .from("stage_progress")
-          .update({
-            thought: data.thought,
-            emotion: data.emotion,
-            action: data.action,
-            notes: data.notes,
-            completion_ready: true,
-            completion_missing: [],
-          })
+          .update(reflectionUpdate)
           .eq("user_id", user.id)
           .eq("stage_number", stageNumber)
           .then(({ error }) => {
