@@ -387,8 +387,19 @@ function LandingScene({
             Vienes a recuperar claridad.
           </motion.p>
 
+          <motion.p
+            {...fade(0.55)}
+            className={cn(
+              "mt-8 sm:mt-10 max-w-md",
+              "ec-meta italic text-[hsl(var(--ink-soft))]",
+              "text-[13px] sm:text-sm leading-relaxed",
+            )}
+          >
+            Si algo en ti lo reconoció, empieza aquí.
+          </motion.p>
+
           <motion.div
-            {...fade(0.6)}
+            {...fade(0.7)}
             className="mt-10 sm:mt-12 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
           >
             <Link
@@ -403,7 +414,7 @@ function LandingScene({
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
               )}
             >
-              Entrar
+              Crear cuenta
             </Link>
             <Link
               href="/login"
