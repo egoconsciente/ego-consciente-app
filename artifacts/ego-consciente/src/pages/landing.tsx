@@ -29,7 +29,8 @@ export default function Landing() {
   const showRitual = shouldShowRitual();
   const [phase, setPhase] = useState<Phase>(showRitual ? "splash" : "landing");
   const [introIndex, setIntroIndex] = useState(0);
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
+  const hasActiveSession = isAuthenticated || isDemoMode();
   const showDemoButton = isDevEnvironment() && !isDemoMode();
   const reduced = respectsReducedMotion();
 
@@ -85,6 +86,7 @@ export default function Landing() {
   return (
     <LandingScene
       reduced={reduced}
+      hasActiveSession={hasActiveSession}
       showDemoButton={showDemoButton}
       onActivateDemo={async () => {
         activateDemoMode();
@@ -289,10 +291,12 @@ function IntroScene({
 
 function LandingScene({
   reduced,
+  hasActiveSession,
   showDemoButton,
   onActivateDemo,
 }: {
   reduced: boolean;
+  hasActiveSession: boolean;
   showDemoButton: boolean;
   onActivateDemo: () => void | Promise<void>;
 }) {
@@ -332,12 +336,14 @@ function LandingScene({
           </span>
         </div>
 
-        <Link
-          href="/login"
-          className="ec-meta text-[hsl(var(--ink-soft))] hover:text-[hsl(var(--tierra-deep))] transition-colors hidden sm:inline"
-        >
-          Ya tengo cuenta →
-        </Link>
+        {!hasActiveSession && (
+          <Link
+            href="/login"
+            className="ec-meta text-[hsl(var(--ink-soft))] hover:text-[hsl(var(--tierra-deep))] transition-colors hidden sm:inline"
+          >
+            Ya tengo cuenta →
+          </Link>
+        )}
       </header>
 
       {/* Hero */}
@@ -395,40 +401,61 @@ function LandingScene({
               "text-[13px] sm:text-sm leading-relaxed",
             )}
           >
-            Si algo en ti lo reconoció, empieza aquí.
+            {hasActiveSession
+              ? "Tu proceso continúa donde lo dejaste."
+              : "Si algo en ti lo reconoció, empieza aquí."}
           </motion.p>
 
           <motion.div
             {...fade(0.7)}
             className="mt-10 sm:mt-12 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
           >
-            <Link
-              href="/register"
-              className={cn(
-                "inline-flex items-center justify-center",
-                "px-10 py-4 rounded-full",
-                "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
-                "text-base font-medium tracking-wide",
-                "shadow-md shadow-[hsl(var(--tierra-deep)/0.18)]",
-                "hover:shadow-lg hover:-translate-y-[1px] transition-all duration-300",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
-              )}
-            >
-              Crear cuenta
-            </Link>
-            <Link
-              href="/login"
-              className={cn(
-                "inline-flex items-center justify-center",
-                "px-8 py-4 rounded-full",
-                "bg-transparent warm-border text-[hsl(var(--tierra-deep))]",
-                "text-base font-medium tracking-wide",
-                "hover:bg-[hsl(var(--paper-veil))] transition-colors duration-300",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
-              )}
-            >
-              Ya tengo cuenta
-            </Link>
+            {hasActiveSession ? (
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "inline-flex items-center justify-center",
+                  "px-10 py-4 rounded-full",
+                  "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+                  "text-base font-medium tracking-wide",
+                  "shadow-md shadow-[hsl(var(--tierra-deep)/0.18)]",
+                  "hover:shadow-lg hover:-translate-y-[1px] transition-all duration-300",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                )}
+              >
+                Continuar mi proceso
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className={cn(
+                    "inline-flex items-center justify-center",
+                    "px-10 py-4 rounded-full",
+                    "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
+                    "text-base font-medium tracking-wide",
+                    "shadow-md shadow-[hsl(var(--tierra-deep)/0.18)]",
+                    "hover:shadow-lg hover:-translate-y-[1px] transition-all duration-300",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                  )}
+                >
+                  Crear cuenta
+                </Link>
+                <Link
+                  href="/login"
+                  className={cn(
+                    "inline-flex items-center justify-center",
+                    "px-8 py-4 rounded-full",
+                    "bg-transparent warm-border text-[hsl(var(--tierra-deep))]",
+                    "text-base font-medium tracking-wide",
+                    "hover:bg-[hsl(var(--paper-veil))] transition-colors duration-300",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
+                  )}
+                >
+                  Ya tengo cuenta
+                </Link>
+              </>
+            )}
           </motion.div>
         </section>
 

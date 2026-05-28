@@ -1,0 +1,77 @@
+CORRECCIÓN FUNCIONAL Y DE ESTADO — LANDING / DEMO / AUTH.
+
+No rediseñes visualmente.
+No cambies Supabase.
+No cambies lógica de negocio profunda.
+No cambies Dashboard, Journey, StageDetail ni onboarding.
+Solo corrige la lógica de la landing, demo mode y botones.
+
+Problema:
+La landing muestra botones “Crear cuenta” y “Ya tengo cuenta” incluso cuando el usuario ya está autenticado o en modo demo. Al tocar esos botones, la app redirige al dashboard porque AuthRoute detecta sesión activa. Eso hace que parezca que los botones están rotos.
+
+Además parece haber duplicación de pantallas tipo landing/splash: una con barra de demo y otra sin barra.
+
+Objetivo:
+Ordenar los estados de entrada.
+
+Reglas:
+
+1. Si NO hay sesión activa y NO hay demo activo:
+   Mostrar landing pública con:
+   - Crear cuenta → /register
+   - Ya tengo cuenta → /login
+
+2. Si hay sesión activa O demo activo:
+   No mostrar botones “Crear cuenta” ni “Ya tengo cuenta”.
+   Mostrar un solo botón principal:
+   - “Continuar” o “Continuar mi proceso”
+   que navegue a /dashboard
+
+3. Si está en modo demo:
+   Mantener la barra de demo arriba si ya existe:
+   - MODO DEMO ACTIVO
+   - Reiniciar demo
+   - Salir del modo demo
+
+4. Si el usuario toca “Salir del modo demo”:
+   Debe salir del estado demo y volver a una landing pública limpia, sin sesión demo, mostrando:
+   - Crear cuenta
+   - Ya tengo cuenta
+
+5. Revisar duplicación:
+   - No debe existir una landing pública duplicada con contenido similar.
+   - No debe haber dos componentes distintos compitiendo por la pantalla inicial.
+   - Si hay Splash y Landing, deben tener roles claros:
+     Splash = triquetra breve
+     Landing = pantalla de decisión
+   - El Splash no debe contener botones.
+   - La Landing no debe duplicar el Splash.
+
+6. Mantener copy actual de la landing:
+   Badge: “UN PROCESO DE OBSERVACIÓN”
+   Frase principal:
+   “No vengo a decirte quién eres.
+   Vengo a mostrarte cómo se construye la historia que hoy llamas «yo».”
+   Texto:
+   “Aquí no vienes a recibir una etiqueta.
+   Vienes a mirar la historia que te organiza.
+   Y a recuperar claridad.”
+   Microcopy:
+   “Si algo en ti lo reconoció, empieza aquí.”
+
+7. No volver a agregar:
+   - 40 etapas
+   - P-E-A
+   - Observa / Integra / Elige
+   - cards
+   - features
+   - secciones de marketing
+
+Al terminar, entrega:
+1. Qué archivo(s) modificaste.
+2. Qué condición detecta sesión/demo.
+3. Qué botones aparecen sin sesión.
+4. Qué botón aparece con sesión/demo.
+5. Confirma que Crear cuenta lleva a /register solo cuando no hay sesión.
+6. Confirma que Ya tengo cuenta lleva a /login solo cuando no hay sesión.
+7. Confirma que con sesión/demo se muestra “Continuar” hacia /dashboard.
