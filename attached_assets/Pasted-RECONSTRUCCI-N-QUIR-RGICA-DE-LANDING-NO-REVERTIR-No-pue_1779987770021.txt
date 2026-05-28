@@ -1,0 +1,94 @@
+RECONSTRUCCIÓN QUIRÚRGICA DE LANDING — NO REVERTIR.
+
+No puedo volver al checkpoint anterior. Entonces necesito que reconstruyas SOLO la landing actual hacia la versión visual aprobada.
+
+NO rediseñes toda la app.
+NO toques rutas.
+NO toques auth.
+NO toques Supabase.
+NO toques dashboard.
+NO toques onboarding.
+NO toques portal.
+NO toques journey.
+NO toques StageDetail.
+NO toques lógica de negocio.
+NO cambies navegación de botones.
+
+Solo modifica la landing pública.
+
+Estado actual incorrecto:
+- aparece “40 etapas · sin etiquetas”
+- aparece “40 etapas breves. Pensamiento, emoción y acción…”
+- aparece “El gesto del proceso”
+- aparecen cards tipo Observa / Integra / Elige
+- hay scroll largo
+- el botón dice “Iniciar proceso”
+- hay lenguaje metodológico antes de entrar
+
+Eliminar completamente de landing:
+- “40 etapas”
+- “sin etiquetas”
+- “P-E-A”
+- “Pensamiento, emoción y acción”
+- “El gesto del proceso”
+- “Observa”
+- “Integra”
+- “Elige”
+- todas las cards explicativas
+- cualquier sección inferior de beneficios
+- cualquier scroll largo
+- cualquier explicación del método
+
+Reconstruir la landing con esta estructura EXACTA:
+
+1. Logo superior:
+Mantener “Ego Consciente” con el sello/triquetra discreto.
+
+2. Badge superior centrado:
+“UN PROCESO DE OBSERVACIÓN”
+
+3. Frase principal:
+“No vengo a decirte quién eres.
+Vengo a mostrarte cómo se construye la historia que hoy llamas ‘yo’.”
+
+Usar estilo editorial grande, cálido, con énfasis en la segunda oración si ya existe.
+
+4. Texto secundario:
+“Ego Consciente es un proceso de autoobservación.
+Aquí no vienes a recibir una etiqueta.
+Vienes a recuperar claridad.”
+
+5. Botón principal:
+Cambiar “Iniciar proceso” por:
+“Entrar”
+
+Debe conservar la acción/navegación actual del botón principal.
+
+6. Botón secundario:
+“Ya tengo cuenta”
+
+Debe conservar la navegación actual a login.
+
+Reglas visuales:
+- La landing debe caber casi completa en una pantalla móvil.
+- Sin cards debajo.
+- Sin sección “El gesto del proceso”.
+- Sin scroll largo.
+- Fondo cálido actual.
+- Mantener composición centrada.
+- Mantener estética editorial.
+- Mantener botones similares a la versión actual.
+- No agregar nuevas secciones.
+- No agregar features.
+- No explicar las 40 etapas todavía.
+- No mencionar método técnico todavía.
+
+Objetivo:
+Reconstruir la landing como una puerta narrativa simple, similar a la versión aprobada, no como landing de marketing.
+
+Al terminar confirma:
+1. archivo modificado
+2. que no tocaste otras pantallas
+3. que “Entrar” conserva la navegación del botón principal
+4. que “Ya tengo cuenta” conserva navegación a login
+5. que la landing ya no contiene “40 etapas”, “P-E-A”, “Observa”, “Integra”, “Elige” ni “El gesto del proceso”

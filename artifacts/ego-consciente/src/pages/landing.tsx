@@ -343,38 +343,48 @@ function LandingScene({
       {/* Hero */}
       <main className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
         <section className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center pb-10">
+          <motion.div {...fade(0.05)} className="mb-7 sm:mb-9">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 py-1.5 px-3.5 rounded-full",
+                "bg-[hsl(var(--paper))] warm-border-soft",
+                "ec-eyebrow text-[hsl(var(--ink-soft))]",
+              )}
+            >
+              <span className="w-1 h-1 rounded-full bg-[hsl(var(--terracota))]" />
+              Un proceso de observación
+            </span>
+          </motion.div>
+
           <motion.h1
             {...fade(0.15)}
             className={cn(
               "ec-serif text-[hsl(var(--tierra-deep))]",
-              "text-[2rem] leading-[1.08] sm:text-5xl md:text-6xl",
+              "text-[1.9rem] leading-[1.1] sm:text-[2.6rem] md:text-5xl",
               "tracking-[-0.015em] max-w-3xl",
             )}
           >
             No vengo a decirte quién eres.
+            <br />
+            <span className="ec-serif-italic text-[hsl(var(--ink))]">
+              Vengo a mostrarte cómo se construye la historia que hoy llamas{" "}
+              <span className="text-[hsl(var(--terracota))]">«yo»</span>.
+            </span>
           </motion.h1>
 
           <motion.p
-            {...fade(0.3)}
+            {...fade(0.4)}
             className={cn(
-              "mt-6 sm:mt-8 max-w-2xl",
-              "ec-serif-italic text-[hsl(var(--ink))]",
-              "text-lg sm:text-2xl leading-[1.45]",
+              "mt-7 sm:mt-9 max-w-xl",
+              "text-[hsl(var(--ink-soft))]",
+              "text-[14px] sm:text-[15px] leading-relaxed",
             )}
           >
-            Vengo a mostrarte la historia que aprendiste a llamar{" "}
-            <span className="text-[hsl(var(--terracota))]">«yo»</span>.
-          </motion.p>
-
-          <motion.p
-            {...fade(0.45)}
-            className={cn(
-              "mt-8 sm:mt-10 max-w-md",
-              "ec-meta italic text-[hsl(var(--ink-soft))]",
-              "text-[13px] sm:text-sm leading-relaxed",
-            )}
-          >
-            Si algo en ti lo reconoció, entra.
+            Ego Consciente es un proceso de autoobservación.
+            <br />
+            Aquí no vienes a recibir una etiqueta.
+            <br />
+            Vienes a recuperar claridad.
           </motion.p>
 
           <motion.div
