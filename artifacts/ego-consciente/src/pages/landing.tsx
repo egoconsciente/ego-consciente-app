@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, GitMerge, Compass } from "lucide-react";
 import {
   shouldShowRitual,
   isDemoMode,
@@ -22,28 +21,6 @@ const INTRO_LINES = [
   "Que había que silenciarlo.",
   "Pero casi nadie explicó cómo funciona.",
   "Hoy puedes empezar a observarlo.",
-];
-
-const PILLARS: {
-  title: string;
-  body: string;
-  Icon: typeof Eye;
-}[] = [
-  {
-    title: "Observa",
-    body: "Reconoce el pensamiento, la emoción y la acción que sostienen tu versión actual de ti.",
-    Icon: Eye,
-  },
-  {
-    title: "Integra",
-    body: "Devuelve coherencia al sistema. Lo que se observa sin juicio empieza a alinearse solo.",
-    Icon: GitMerge,
-  },
-  {
-    title: "Elige",
-    body: "Recupera agencia. Decide desde la presencia, no desde la inercia heredada.",
-    Icon: Compass,
-  },
 ];
 
 type Phase = "splash" | "intro" | "landing";
@@ -365,31 +342,16 @@ function LandingScene({
 
       {/* Hero */}
       <main className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
-        <section className="pt-10 sm:pt-20 pb-16 sm:pb-24 flex flex-col items-center text-center">
-          <motion.div {...fade(0.05)} className="mb-7 sm:mb-10">
-            <span
-              className={cn(
-                "inline-flex items-center gap-2 py-1.5 px-3.5 rounded-full",
-                "bg-[hsl(var(--paper))] warm-border",
-                "ec-eyebrow text-[hsl(var(--terracota))]",
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--terracota))]" />
-              40 etapas · sin etiquetas
-            </span>
-          </motion.div>
-
+        <section className="min-h-[calc(100vh-7rem)] flex flex-col items-center justify-center text-center pb-10">
           <motion.h1
             {...fade(0.15)}
             className={cn(
               "ec-serif text-[hsl(var(--tierra-deep))]",
-              "text-[2rem] leading-[1.08] sm:text-5xl md:text-6xl lg:text-7xl",
+              "text-[2rem] leading-[1.08] sm:text-5xl md:text-6xl",
               "tracking-[-0.015em] max-w-3xl",
             )}
           >
-            No vengo a decirte
-            <br />
-            quién eres.
+            No vengo a decirte quién eres.
           </motion.h1>
 
           <motion.p
@@ -397,24 +359,22 @@ function LandingScene({
             className={cn(
               "mt-6 sm:mt-8 max-w-2xl",
               "ec-serif-italic text-[hsl(var(--ink))]",
-              "text-lg sm:text-2xl md:text-3xl leading-[1.45]",
+              "text-lg sm:text-2xl leading-[1.45]",
             )}
           >
-            Vengo a mostrarte cómo se organiza la versión de ti que estás
-            llamando <span className="text-[hsl(var(--terracota))]">«yo»</span>.
+            Vengo a mostrarte la historia que aprendiste a llamar{" "}
+            <span className="text-[hsl(var(--terracota))]">«yo»</span>.
           </motion.p>
 
           <motion.p
             {...fade(0.45)}
             className={cn(
-              "mt-8 sm:mt-10 max-w-xl",
-              "text-[hsl(var(--ink-soft))]",
-              "text-[15px] sm:text-base leading-relaxed",
+              "mt-8 sm:mt-10 max-w-md",
+              "ec-meta italic text-[hsl(var(--ink-soft))]",
+              "text-[13px] sm:text-sm leading-relaxed",
             )}
           >
-            40 etapas breves. Pensamiento, emoción y acción.
-            <br className="hidden sm:block" />
-            Un espejo vivo que aprende contigo sin etiquetarte.
+            Si algo en ti lo reconoció, entra.
           </motion.p>
 
           <motion.div
@@ -424,8 +384,8 @@ function LandingScene({
             <Link
               href="/register"
               className={cn(
-                "group inline-flex items-center justify-center gap-2",
-                "px-8 py-4 rounded-full",
+                "inline-flex items-center justify-center",
+                "px-10 py-4 rounded-full",
                 "bg-[hsl(var(--tierra-deep))] text-[hsl(var(--paper))]",
                 "text-base font-medium tracking-wide",
                 "shadow-md shadow-[hsl(var(--tierra-deep)/0.18)]",
@@ -433,13 +393,7 @@ function LandingScene({
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--terracota))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--paper))]",
               )}
             >
-              Iniciar proceso
-              <span
-                aria-hidden
-                className="transition-transform duration-300 group-hover:translate-x-0.5"
-              >
-                →
-              </span>
+              Entrar
             </Link>
             <Link
               href="/login"
@@ -457,69 +411,8 @@ function LandingScene({
           </motion.div>
         </section>
 
-        {/* Pillars */}
-        <motion.section
-          {...fade(0.75)}
-          className="pb-20 sm:pb-28"
-          aria-labelledby="pillars-heading"
-        >
-          <div className="flex items-center justify-center gap-4 mb-8 sm:mb-10">
-            <span className="h-px w-10 bg-[hsl(var(--warm-line))]" />
-            <h2
-              id="pillars-heading"
-              className="ec-eyebrow text-[hsl(var(--ink-soft))]"
-            >
-              El gesto del proceso
-            </h2>
-            <span className="h-px w-10 bg-[hsl(var(--warm-line))]" />
-          </div>
-
-          <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-            {PILLARS.map(({ title, body, Icon }, i) => (
-              <li key={title}>
-                <motion.article
-                  initial={reduced ? false : { opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{
-                    duration: reduced ? 0 : 0.7,
-                    delay: reduced ? 0 : 0.05 * i,
-                    ease,
-                  }}
-                  className={cn(
-                    "h-full rounded-2xl p-6 sm:p-7",
-                    "paper-surface",
-                    "flex flex-col gap-3",
-                    "transition-shadow duration-300 hover:shadow-md hover:shadow-[hsl(var(--tierra-deep)/0.06)]",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "w-10 h-10 inline-flex items-center justify-center rounded-full",
-                      "bg-[hsl(var(--paper-veil))] warm-border-soft",
-                      "text-[hsl(var(--tierra-deep))]",
-                    )}
-                  >
-                    <Icon className="w-[18px] h-[18px]" strokeWidth={1.6} />
-                  </span>
-                  <h3 className="ec-serif text-xl text-[hsl(var(--tierra-deep))]">
-                    {title}
-                  </h3>
-                  <p className="text-[15px] leading-relaxed text-[hsl(var(--ink-soft))]">
-                    {body}
-                  </p>
-                </motion.article>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-10 text-center ec-meta italic text-[hsl(var(--ink-soft))]">
-            Observa. Integra. Elige.
-          </p>
-        </motion.section>
-
         {showDemoButton && (
-          <div className="pb-12 flex justify-center">
+          <div className="pb-8 flex justify-center">
             <button
               onClick={onActivateDemo}
               className="px-5 py-2 ec-meta text-[hsl(var(--ink-soft))] hover:text-[hsl(var(--tierra-deep))] warm-border-soft rounded-full transition-colors"
