@@ -1,0 +1,65 @@
+CORRECCIÓN EXACTA — LANDING DEBE ABRIR AUTH LIMPIO.
+
+No rediseñes.
+No cambies estilos.
+No cambies Supabase schema.
+No cambies Dashboard.
+No cambies Onboarding.
+No cambies Journey.
+No cambies StageDetail.
+No cambies lógica del proceso.
+
+Problema:
+En la landing ya aparecen “Crear cuenta” y “Ya tengo cuenta”.
+Pero al tocar “Ya tengo cuenta”, la app entra directo al proceso porque /login detecta sesión activa o demo activo y redirige a /dashboard.
+
+Eso no sirve para la landing pública.
+
+Objetivo:
+Desde la landing, los botones deben iniciar un flujo limpio:
+
+- Crear cuenta debe limpiar demo/sesión actual y luego ir a /register.
+- Ya tengo cuenta debe limpiar demo/sesión actual y luego ir a /login.
+
+Reglas:
+
+1. En src/pages/landing.tsx, reemplaza los <Link> directos de los botones por handlers explícitos si hace falta.
+
+2. Crear una función tipo:
+handleCreateAccount()
+que haga:
+- si hay demo mode activo, limpiar/desactivar demo mode
+- cerrar sesión Supabase si existe sesión activa
+- navegar a /register
+
+3. Crear una función tipo:
+handleLogin()
+que haga:
+- si hay demo mode activo, limpiar/desactivar demo mode
+- cerrar sesión Supabase si existe sesión activa
+- navegar a /login
+
+4. Usa las utilidades existentes del proyecto:
+- demo-mode.ts si existe
+- useAuth().logout si ya existe
+- supabase.auth.signOut solo si es la forma actual del proyecto
+
+5. No rompas el botón de logout existente.
+6. No cambies AuthRoute todavía.
+7. No cambies App.tsx salvo que sea estrictamente necesario.
+8. No elimines DemoBanner.
+9. No cambies textos visuales.
+
+Resultado esperado:
+- En /, tocar “Crear cuenta” debe llevar a /register y mostrar el formulario de registro, aunque antes hubiera demo o sesión.
+- En /, tocar “Ya tengo cuenta” debe llevar a /login y mostrar el formulario de login, aunque antes hubiera demo o sesión.
+- No debe redirigir automáticamente a /dashboard después de tocar esos botones.
+- La sesión/demo previa debe quedar limpiada cuando el usuario decide entrar por Crear cuenta o Ya tengo cuenta.
+
+Al terminar confirma:
+1. qué archivo modificaste
+2. qué función limpia demo mode
+3. qué función cierra sesión Supabase
+4. que Crear cuenta muestra /register limpio
+5. que Ya tengo cuenta muestra /login limpio
+6. que no tocaste diseño ni otras pantallas

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   shouldShowRitual,
@@ -7,6 +6,7 @@ import {
   isDevEnvironment,
   activateDemoMode,
   resetDemoReplay,
+  exitDemoMode,
   getAppBase,
 } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth-context";
@@ -296,12 +296,27 @@ function LandingScene({
   showDemoButton: boolean;
   onActivateDemo: () => void | Promise<void>;
 }) {
+  const { logout } = useAuth();
   const ease: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
   const fade = (delay: number) => ({
     initial: reduced ? false : { opacity: 0, y: 14 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: reduced ? 0 : 0.9, delay: reduced ? 0 : delay, ease },
   });
+
+  const enterCleanFlow = async (target: "register" | "login") => {
+    if (isDemoMode()) exitDemoMode();
+    await logout();
+    window.location.assign(`${getAppBase()}${target}`);
+  };
+
+  const handleCreateAccount = () => {
+    void enterCleanFlow("register");
+  };
+
+  const handleLogin = () => {
+    void enterCleanFlow("login");
+  };
 
   return (
     <div className="min-h-screen bg-[hsl(var(--paper))] text-[hsl(var(--ink))] relative overflow-hidden">
@@ -332,12 +347,13 @@ function LandingScene({
           </span>
         </div>
 
-        <Link
-          href="/login"
+        <button
+          type="button"
+          onClick={handleLogin}
           className="ec-meta text-[hsl(var(--ink-soft))] hover:text-[hsl(var(--tierra-deep))] transition-colors hidden sm:inline"
         >
           Ya tengo cuenta →
-        </Link>
+        </button>
       </header>
 
       {/* Hero */}
@@ -402,8 +418,9 @@ function LandingScene({
             {...fade(0.7)}
             className="mt-10 sm:mt-12 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
           >
-            <Link
-              href="/register"
+            <button
+              type="button"
+              onClick={handleCreateAccount}
               className={cn(
                 "inline-flex items-center justify-center",
                 "px-10 py-4 rounded-full",
@@ -415,9 +432,10 @@ function LandingScene({
               )}
             >
               Crear cuenta
-            </Link>
-            <Link
-              href="/login"
+            </button>
+            <button
+              type="button"
+              onClick={handleLogin}
               className={cn(
                 "inline-flex items-center justify-center",
                 "px-8 py-4 rounded-full",
@@ -428,7 +446,7 @@ function LandingScene({
               )}
             >
               Ya tengo cuenta
-            </Link>
+            </button>
           </motion.div>
         </section>
 
