@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { reportClientError, reportClientEvent } from "./client-observability";
 
 // ═══════════════════════════════════════════════
 //  TYPES
@@ -87,7 +88,7 @@ export async function fetchEgoContext(userId: string): Promise<EgoContext> {
     currentDay = Math.min(Math.max(diff + 1, 1), 40);
   }
 
-  console.log("[EgoEngine] Contexto cargado:", {
+  reportClientEvent("ego_context_loaded", {
     hasOnboarding: !!onboarding,
     peaCount: peaEntries.length,
     currentDay,
@@ -105,7 +106,7 @@ export async function loadChatMessages(userId: string): Promise<ChatMsg[]> {
     .limit(100);
 
   if (error) {
-    console.error("[EgoEngine] Error cargando mensajes:", error);
+    reportClientError("chat_messages_load_failed", error);
     return [];
   }
   return (data ?? []) as ChatMsg[];
@@ -123,7 +124,7 @@ export async function saveChatMessage(
     .single();
 
   if (error) {
-    console.error("[EgoEngine] Error guardando mensaje:", error);
+    reportClientError("chat_message_save_failed", error, { role });
     return null;
   }
   return data as ChatMsg;
@@ -189,7 +190,11 @@ export function buildEgoMemory(
     suggested_step: suggestedStep,
   };
 
-  console.log("[EgoEngine] Ego memory computada:", payload);
+  reportClientEvent("ego_memory_computed", {
+    currentDay,
+    peaCount: peaEntries.length,
+    populatedFieldCount: Object.values(payload).filter((value) => value != null).length,
+  });
   return payload;
 }
 
@@ -199,9 +204,9 @@ export async function saveEgoMemory(payload: EgoMemoryPayload): Promise<void> {
     .upsert(payload, { onConflict: "user_id" });
 
   if (error) {
-    console.error("[EgoEngine] Error guardando ego_memory:", error);
+    reportClientError("ego_memory_save_failed", error);
   } else {
-    console.log("[EgoEngine] ego_memory guardada.");
+    reportClientEvent("ego_memory_saved");
   }
 }
 

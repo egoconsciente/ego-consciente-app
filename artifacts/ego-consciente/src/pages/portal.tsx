@@ -7,6 +7,7 @@ import { Compass, Clock, Sparkle } from "lucide-react";
 import { EcSigil } from "@/components/ec";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { reportClientError, reportClientEvent, reportClientWarning } from "@/lib/client-observability";
 
 type OnboardingSummary = {
   reason: string | null;
@@ -35,7 +36,9 @@ export default function Portal() {
         .maybeSingle();
       if (!active) return;
       if (error) {
-        console.warn("[Portal] No se pudo cargar resumen:", error.message);
+        reportClientWarning("portal_summary_load_failed", {
+          errorCode: error.code,
+        });
         return;
       }
       if (data) {
@@ -52,7 +55,7 @@ export default function Portal() {
   }, [user]);
 
   const navigateToDashboard = () => {
-    console.log("[Portal] Redirecting to /dashboard");
+    reportClientEvent("portal_navigation_started");
     markPortalComplete();
     setLocation("/dashboard");
   };
@@ -61,10 +64,10 @@ export default function Portal() {
     if (!user || isStarting) return;
     setIsStarting(true);
     setErrorMsg(null);
-    console.log("[Portal] Cross threshold clicked");
+    reportClientEvent("portal_crossing_started");
 
     const fallbackTimer = setTimeout(() => {
-      console.log("[Portal] Fallback timeout — forcing navigation");
+      reportClientWarning("portal_navigation_fallback_triggered");
       navigateToDashboard();
     }, 4000);
 
@@ -85,9 +88,9 @@ export default function Portal() {
 
       if (journeyError) {
         clearTimeout(fallbackTimer);
-        console.error("[Portal] journey_state error:", journeyError.message);
+        reportClientError("portal_state_save_failed", journeyError);
         setErrorMsg(
-          `Error al iniciar (${journeyError.code || "desconocido"}). Revisa la consola.`,
+          `Error al iniciar (${journeyError.code || "desconocido"}). Intenta de nuevo.`,
         );
         setIsStarting(false);
         return;
@@ -107,14 +110,16 @@ export default function Portal() {
         );
 
       if (stageError) {
-        console.error("[Portal] stage_progress init error:", stageError.message);
+        reportClientError("portal_first_stage_initialization_failed", stageError, {
+          stageNumber: 1,
+        });
       }
 
       clearTimeout(fallbackTimer);
       navigateToDashboard();
     } catch (err) {
       clearTimeout(fallbackTimer);
-      console.error("[Portal] Unexpected error:", err);
+      reportClientError("portal_crossing_unexpected_failure", err);
       setErrorMsg("Error inesperado. Intenta de nuevo.");
       setIsStarting(false);
     }

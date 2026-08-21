@@ -1,5 +1,6 @@
 import { activateDemoMode, resetDemoReplay, getAppBase } from "@/lib/demo-mode";
 import { supabase } from "@/lib/supabase";
+import { reportClientEvent } from "@/lib/client-observability";
 
 export function detectDemoOnLoad(): void {
   const params = new URLSearchParams(window.location.search);
@@ -8,7 +9,7 @@ export function detectDemoOnLoad(): void {
   const normalizedPath = base ? pathname.replace(base, "") || "/" : pathname;
 
   if (params.get("demo") === "1") {
-    console.log("[DemoMode] Activated from ?demo=1 on", pathname);
+    reportClientEvent("demo_mode_activated", { source: "query_parameter" });
     activateDemoMode();
     resetDemoReplay();
     supabase.auth.signOut().finally(() => {
@@ -18,7 +19,7 @@ export function detectDemoOnLoad(): void {
   }
 
   if (normalizedPath === "/demo" || normalizedPath === "/demo/") {
-    console.log("[DemoMode] Activated from /demo");
+    reportClientEvent("demo_mode_activated", { source: "direct_route" });
     activateDemoMode();
     resetDemoReplay();
     supabase.auth.signOut().finally(() => {

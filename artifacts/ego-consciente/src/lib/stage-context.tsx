@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { TOTAL_STAGES, type StageDefinition, getStage } from "./stages";
+import { reportClientError, reportClientEvent, reportClientWarning } from "./client-observability";
 
 export interface StageReflection {
   thought: string;
@@ -125,7 +126,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       .order("stage_number", { ascending: true });
 
     if (error) {
-      console.error("[StageContext] Error loading stages:", error);
+      reportClientError("stage_load_failed", error);
       setIsLoading(false);
       return;
     }
@@ -204,13 +205,10 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
       if (data.notes !== undefined) updatePayload.notes = data.notes;
       if (reflectionPayload !== undefined) {
         updatePayload.reflection_payload = reflectionPayload;
-        if (import.meta.env.DEV) {
-          console.log("REFLECTION PAYLOAD SENT TO SUPABASE (autosave)", {
-            stageNumber,
-            keys: Object.keys(reflectionPayload),
-            payload: reflectionPayload,
-          });
-        }
+        reportClientEvent("stage_autosave_submitted", {
+          stageNumber,
+          fieldCount: Object.keys(reflectionPayload).length,
+        });
       }
 
       const { error } = await supabase
@@ -218,13 +216,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         .upsert(updatePayload, { onConflict: "user_id,stage_number" });
 
       if (error) {
-        console.error("REFLECTION PAYLOAD SAVE ERROR (autosave)", {
-          stageNumber,
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        });
+        reportClientError("stage_autosave_failed", error, { stageNumber });
         return false;
       }
 
@@ -288,28 +280,31 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
     async (stageNumber: number, data: StageReflection, reflectionPayload?: Record<string, unknown>): Promise<{ success: boolean; validation?: ValidationResult }> => {
       if (!user) return { success: false };
 
-      console.log("START COMPLETE STAGE", stageNumber, "current:", currentStage);
+      reportClientEvent("stage_completion_started", { stageNumber, currentStage });
 
       if (stageNumber !== currentStage) {
-        console.warn("SKIP: stageNumber", stageNumber, "!= currentStage", currentStage);
+        reportClientWarning("stage_completion_rejected_not_current", { stageNumber, currentStage });
         return { success: false };
       }
 
       const progress = stages.find((s) => s.stageNumber === stageNumber);
       if (progress && progress.status === "completed") {
-        console.warn("SKIP: stage already completed");
+        reportClientWarning("stage_completion_rejected_already_completed", { stageNumber });
         return { success: false };
       }
 
       const validation = validateReflection(data);
       if (!validation.valid) {
-        console.log("VALIDATION FAILED:", validation.missing.map(m => m.field));
+        reportClientEvent("stage_validation_failed", {
+          stageNumber,
+          missingFields: validation.missing.map((item) => item.field),
+        });
         const missingFields = validation.missing.map((m) => m.field);
         await recordValidationFailure(stageNumber, missingFields);
         return { success: false, validation };
       }
 
-      console.log("VALIDATION PASSED — writing to DB");
+      reportClientEvent("stage_validation_passed", { stageNumber });
 
       try {
         const now = new Date().toISOString();
@@ -328,15 +323,12 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         };
         if (reflectionPayload !== undefined) {
           completionUpdate.reflection_payload = reflectionPayload;
-          if (import.meta.env.DEV) {
-            console.log("REFLECTION PAYLOAD SENT TO SUPABASE (completion)", {
-              stageNumber,
-              keys: Object.keys(reflectionPayload),
-              payload: reflectionPayload,
-            });
-          }
+          reportClientEvent("stage_completion_submitted", {
+            stageNumber,
+            fieldCount: Object.keys(reflectionPayload).length,
+          });
         } else {
-          console.warn("[StageContext] completeStageWithData called without reflectionPayload — column will not be updated", { stageNumber });
+          reportClientWarning("stage_completion_missing_structured_payload", { stageNumber });
         }
 
         const { error: updateError } = await supabase
@@ -346,19 +338,11 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
           .eq("stage_number", stageNumber);
 
         if (updateError) {
-          console.error("REFLECTION PAYLOAD SAVE ERROR (completion)", {
-            stageNumber,
-            message: updateError.message,
-            code: updateError.code,
-            details: updateError.details,
-            hint: updateError.hint,
-          });
+          reportClientError("stage_completion_failed", updateError, { stageNumber });
           return { success: false };
         }
 
-        if (import.meta.env.DEV) {
-          console.log("STAGE COMPLETED — single atomic write succeeded", { stageNumber });
-        }
+        reportClientEvent("stage_completion_persisted", { stageNumber });
 
         if (stageNumber < TOTAL_STAGES) {
           const { error: insertError } = await supabase
@@ -372,16 +356,20 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
             }, { onConflict: "user_id,stage_number" });
 
           if (insertError) {
-            console.error("INSERT ERROR", insertError);
+            reportClientError("next_stage_initialization_failed", insertError, {
+              stageNumber: stageNumber + 1,
+            });
           } else {
-            console.log("NEXT STAGE CREATED", stageNumber + 1);
+            reportClientEvent("next_stage_initialized", {
+              stageNumber: stageNumber + 1,
+            });
           }
         }
 
         await loadStages();
         return { success: true };
       } catch (err) {
-        console.error("CRITICAL ERROR", err);
+        reportClientError("stage_completion_unexpected_failure", err, { stageNumber });
         return { success: false };
       }
     },

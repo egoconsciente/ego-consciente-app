@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { activateDemoMode, resetDemoReplay, getAppBase } from "@/lib/demo-mode";
+import { reportClientEvent } from "@/lib/client-observability";
 
 export default function DemoActivate() {
   const { logout } = useAuth();
 
   useEffect(() => {
     (async () => {
-      console.log("[DemoMode] Activated from /demo route (SPA navigation)");
+      reportClientEvent("demo_mode_activated", { source: "spa_route" });
       activateDemoMode();
       resetDemoReplay();
       await logout();

@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { EcSigil } from "@/components/ec";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { reportClientError, reportClientEvent } from "@/lib/client-observability";
 
 const TOTAL_STEPS = 4;
 
@@ -121,28 +122,22 @@ export default function Onboarding() {
       daily_time: dailyTime,
     };
 
-    console.log("[Onboarding] Guardando respuestas:", payload);
+    reportClientEvent("onboarding_save_started", { fieldCount: 4 });
 
     const { error } = await supabase
       .from("onboarding_responses")
       .upsert(payload, { onConflict: "user_id" });
 
     if (error) {
-      console.error("[Onboarding] Error al guardar:", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
+      reportClientError("onboarding_save_failed", error);
       setSaveError(
-        `No se pudo guardar (${error.code ?? "error desconocido"}). ` +
-          "Revisa la consola del navegador para ver el detalle.",
+        `No se pudo guardar (${error.code ?? "error desconocido"}). Intenta de nuevo.`,
       );
       setIsSaving(false);
       return;
     }
 
-    console.log("[Onboarding] Guardado con éxito.");
+    reportClientEvent("onboarding_saved");
     markOnboardingComplete();
     setLocation("/dashboard");
   };

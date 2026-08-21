@@ -1,27 +1,28 @@
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoMode, exitDemoMode, resetDemoReplay, getAppBase } from "@/lib/demo-mode";
+import { reportClientEvent } from "@/lib/client-observability";
 
 export function DemoBanner() {
   const { logout } = useAuth();
 
   useEffect(() => {
     if (isDemoMode()) {
-      console.log("[DemoBanner] Montado — modo demo activo");
+      reportClientEvent("demo_banner_mounted");
     }
   }, []);
 
   if (!isDemoMode()) return null;
 
   const handleReset = async () => {
-    console.log("[DemoMode] Reiniciar demo presionado");
+    reportClientEvent("demo_replay_requested");
     resetDemoReplay();
     await logout();
     window.location.replace(getAppBase());
   };
 
   const handleExit = () => {
-    console.log("[DemoMode] Salir del modo demo presionado");
+    reportClientEvent("demo_exit_requested");
     exitDemoMode();
     window.location.replace(getAppBase());
   };

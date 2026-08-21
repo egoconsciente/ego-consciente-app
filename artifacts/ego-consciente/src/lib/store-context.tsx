@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
+import { reportClientError } from "./client-observability";
 
 export interface Reflection {
   id: string;
@@ -67,7 +68,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         .order("day_number", { ascending: true });
 
       if (error) {
-        console.error("Error cargando entradas PEA:", error);
+        reportClientError("pea_entries_load_failed", error);
       } else if (entries) {
         const mapped: Reflection[] = entries.map(
           (entry: {
@@ -128,7 +129,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .single()
       .then(({ data, error }) => {
         if (error) {
-          console.error("Error guardando reflexión:", error);
+          reportClientError("pea_reflection_save_failed", error, {
+            dayNumber: currentDay,
+          });
         } else if (data) {
           setReflections((prev) =>
             prev.map((ref) =>

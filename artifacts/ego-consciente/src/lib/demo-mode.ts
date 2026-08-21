@@ -1,3 +1,5 @@
+import { reportClientEvent } from "./client-observability";
+
 const DEMO_KEY = "ego_demo_replay";
 const RITUAL_KEY = "ego_ritual_seen";
 
@@ -11,12 +13,12 @@ export function activateDemoMode(): void {
 }
 
 export function exitDemoMode(): void {
-  console.log("[DemoMode] Exiting demo mode");
+  reportClientEvent("demo_mode_exited");
   localStorage.removeItem(DEMO_KEY);
 }
 
 export function resetDemoReplay(): void {
-  console.log("[DemoMode] Restarting replay");
+  reportClientEvent("demo_replay_reset");
   localStorage.removeItem(RITUAL_KEY);
 }
 
