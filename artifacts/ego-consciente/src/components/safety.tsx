@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import {
   motion,
@@ -438,23 +438,32 @@ export function PauseProcessDialog({
   open,
   onCancel,
   onConfirm,
+  busy = false,
+  error,
+  onRetry,
 }: {
   open: boolean;
   onCancel: () => void;
-  onConfirm?: () => void;
+  onConfirm: () => Promise<boolean>;
+  busy?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }) {
   const reduced = respectsReducedMotion();
+  const [submitting, setSubmitting] = useState(false);
+  const pending = busy || submitting;
+  const cancel = () => { if (!pending) onCancel(); };
   const confirmRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape" && !pending) onCancel();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
+  }, [open, onCancel, pending]);
 
   useModalA11y(open, containerRef, confirmRef);
 
@@ -469,10 +478,12 @@ export function PauseProcessDialog({
           role="dialog"
           aria-modal="true"
           aria-labelledby="pause-dialog-title"
+          aria-describedby="pause-dialog-description"
+          aria-busy={pending}
         >
           <div
             className="absolute inset-0 bg-[hsl(var(--tierra-deep)/0.22)] backdrop-blur-[2px]"
-            onClick={onCancel}
+            onClick={cancel}
           />
           <motion.div
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.98 }}
@@ -507,15 +518,17 @@ export function PauseProcessDialog({
             <p className="mt-5 ec-serif text-[15px] text-[hsl(var(--tierra-deep))] leading-relaxed">
               Pausar no borra tu proceso.
             </p>
-            <p className="mt-2 ec-serif-italic text-[13px] text-[hsl(var(--ink-soft))] leading-relaxed">
-              Tus etapas, tu diario y lo observado se quedan donde están. Puedes
+            <p id="pause-dialog-description" className="mt-2 ec-serif-italic text-[13px] text-[hsl(var(--ink-soft))] leading-relaxed">
+              Tus etapas y registros guardados se conservan. La pausa detiene el avance; no tiene vencimiento. Puedes
               volver cuando estés listo.
             </p>
 
+            {error && <div role="alert"><p>{error}</p>{onRetry && <button type="button" disabled={pending} onClick={onRetry}>Consultar estado</button>}</div>}
             <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
               <button
                 type="button"
-                onClick={onCancel}
+                onClick={cancel}
+                disabled={pending}
                 className={cn(
                   "inline-flex items-center justify-center px-4 py-2.5 rounded-full text-[13px]",
                   "ec-meta italic text-[hsl(var(--ink-soft))]",
@@ -528,9 +541,11 @@ export function PauseProcessDialog({
               <button
                 ref={confirmRef}
                 type="button"
-                onClick={() => {
-                  onConfirm?.();
-                  onCancel();
+                disabled={pending || !!error}
+                onClick={async () => {
+                  if (pending) return;
+                  setSubmitting(true);
+                  try { if (await onConfirm()) onCancel(); } finally { setSubmitting(false); }
                 }}
                 className={cn(
                   "inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px]",
@@ -540,7 +555,7 @@ export function PauseProcessDialog({
                 )}
               >
                 <PauseCircle className="w-3.5 h-3.5" strokeWidth={1.7} />
-                Pausar
+                {pending ? "Guardando…" : "Pausar"}
               </button>
             </div>
           </motion.div>

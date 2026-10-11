@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useProcessPause } from "./process-pause";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { TOTAL_STAGES, type StageDefinition, getStage } from "./stages";
@@ -35,6 +36,7 @@ export type ValidationResult =
   | { valid: false; missing: MissingField[] };
 
 interface StageContextType {
+  pause: ReturnType<typeof useProcessPause>;
   stages: StageProgress[];
   currentStage: number;
   completedCount: number;
@@ -106,6 +108,7 @@ export function validateReflection(data: StageReflection): ValidationResult {
 
 export function StageProvider({ children }: { children: React.ReactNode }) {
   const { user, portalComplete } = useAuth();
+  const pause = useProcessPause(user?.id);
   const [stages, setStages] = useState<StageProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -286,7 +289,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
 
   const completeStageWithData = useCallback(
     async (stageNumber: number, data: StageReflection, reflectionPayload?: Record<string, unknown>): Promise<{ success: boolean; validation?: ValidationResult }> => {
-      if (!user) return { success: false };
+      if (!user || pause.loading || pause.paused || pause.error || pause.busy) return { success: false };
 
       console.log("START COMPLETE STAGE", stageNumber, "current:", currentStage);
 
@@ -385,12 +388,13 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         return { success: false };
       }
     },
-    [user, currentStage, stages, recordValidationFailure, loadStages]
+    [user, currentStage, stages, recordValidationFailure, loadStages, pause]
   );
 
   return (
     <StageContext.Provider
       value={{
+        pause,
         stages,
         currentStage,
         completedCount,
