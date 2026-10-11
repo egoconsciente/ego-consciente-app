@@ -1,3 +1,4 @@
+import { resolveJourneyProgress } from "./journey-progress";
 import { supabase } from "./supabase";
 
 // ═══════════════════════════════════════════════
@@ -30,7 +31,7 @@ export interface EgoContext {
   onboarding: OnboardingData | null;
   peaEntries: PeaEntry[];
   latestPea: PeaEntry | null;
-  currentDay: number;
+  currentStage: number;
   messageCount: number;
 }
 
@@ -55,7 +56,7 @@ type ResponseMode = "reflect" | "clarify" | "step";
 // ═══════════════════════════════════════════════
 
 export async function fetchEgoContext(userId: string): Promise<EgoContext> {
-  const [onboardingRes, peaRes, profileRes] = await Promise.all([
+  const [onboardingRes, peaRes, progressRes] = await Promise.all([
     supabase
       .from("onboarding_responses")
       .select("reason,incongruence_area,difficulty,daily_time")
@@ -65,35 +66,30 @@ export async function fetchEgoContext(userId: string): Promise<EgoContext> {
       .from("pea_entries")
       .select("day_number,thought,emotion,action,created_at")
       .eq("user_id", userId)
-      .order("day_number", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(10),
     supabase
-      .from("profiles")
-      .select("created_at")
-      .eq("id", userId)
-      .single(),
+      .from("stage_progress")
+      .select("stage_number,status")
+      .eq("user_id", userId),
   ]);
 
   const onboarding = onboardingRes.data as OnboardingData | null;
   const peaEntries = (peaRes.data ?? []) as PeaEntry[];
   const latestPea = peaEntries.length > 0 ? peaEntries[0] : null;
 
-  let currentDay = 1;
-  if (profileRes.data) {
-    const diff = Math.floor(
-      (Date.now() - new Date(profileRes.data.created_at).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-    currentDay = Math.min(Math.max(diff + 1, 1), 40);
-  }
+  if (progressRes.error) throw progressRes.error;
+  const { currentStage } = resolveJourneyProgress(
+    (progressRes.data ?? []).map(row => ({ stageNumber: row.stage_number, status: row.status }))
+  );
 
   console.log("[EgoEngine] Contexto cargado:", {
     hasOnboarding: !!onboarding,
     peaCount: peaEntries.length,
-    currentDay,
+    currentStage,
   });
 
-  return { onboarding, peaEntries, latestPea, currentDay, messageCount: 0 };
+  return { onboarding, peaEntries, latestPea, currentStage, messageCount: 0 };
 }
 
 export async function loadChatMessages(userId: string): Promise<ChatMsg[]> {
@@ -137,7 +133,7 @@ export function buildEgoMemory(
   userId: string,
   ctx: EgoContext
 ): EgoMemoryPayload {
-  const { onboarding, peaEntries, latestPea, currentDay } = ctx;
+  const { onboarding, peaEntries, latestPea, currentStage } = ctx;
 
   const primaryArea = onboarding?.incongruence_area ?? null;
   const primaryDiff = onboarding?.difficulty ?? null;
@@ -164,7 +160,7 @@ export function buildEgoMemory(
   if (!latestPea) {
     nextQuestion = "¿Qué pensaste, sentiste e hiciste hoy?";
   } else if (latestPea.thought && latestPea.emotion) {
-    nextQuestion = `Ayer notaste "${latestPea.emotion}". ¿Qué notas hoy?`;
+    nextQuestion = `En tu última reflexión notaste "${latestPea.emotion}". ¿Qué notas hoy?`;
   }
 
   let suggestedStep: string | null = null;
@@ -172,12 +168,13 @@ export function buildEgoMemory(
   if (!latestPea) {
     suggestedStep = `Dedica ${dailyTime} a tu primera reflexión PEA.`;
   } else {
-    suggestedStep = `Hoy dedica ${dailyTime} a observar si el patrón de ayer se repite.`;
+    suggestedStep = `Hoy dedica ${dailyTime} a observar si el patrón de tu última reflexión se repite.`;
   }
 
   const payload: EgoMemoryPayload = {
     user_id: userId,
-    current_day: currentDay,
+    // Legacy Supabase column name; its value is the canonical stage.
+    current_day: currentStage,
     primary_incongruence_area: primaryArea,
     primary_difficulty: primaryDiff,
     latest_thought: latestPea?.thought ?? null,
@@ -294,7 +291,7 @@ function stepWithContext(ctx: EgoContext): string {
   const time = ctx.onboarding?.daily_time ?? "5 min";
 
   if (ctx.latestPea) {
-    return `Hoy dedica ${time} a observar si lo que sentiste ayer ("${ctx.latestPea.emotion}") aparece de nuevo. Sin juzgar.`;
+    return `Hoy dedica ${time} a observar si lo que sentiste en tu última reflexión ("${ctx.latestPea.emotion}") aparece de nuevo. Sin juzgar.`;
   }
 
   return pickRandom(STEP_GENERIC);
@@ -318,12 +315,12 @@ export function generateResponse(userMessage: string, ctx: EgoContext): string {
 // ═══════════════════════════════════════════════
 
 export function generateWelcome(ctx: EgoContext): string {
-  const { onboarding, latestPea, currentDay } = ctx;
+  const { onboarding, latestPea, currentStage } = ctx;
 
   if (onboarding && !latestPea) {
     return (
       `Sé por qué estás aquí. Mencionaste: "${onboarding.reason}". ` +
-      `Hoy es tu día ${currentDay}. Antes de que conversemos, te invito a completar ` +
+      `Estás en la etapa ${currentStage}. Antes de que conversemos, te invito a completar ` +
       `tu primera reflexión PEA — pensamiento, emoción, acción. ` +
       `Eso me da contexto real para acompañarte.`
     );
@@ -331,14 +328,14 @@ export function generateWelcome(ctx: EgoContext): string {
 
   if (onboarding && latestPea) {
     return (
-      `Día ${currentDay}. En tu última reflexión notaste: "${latestPea.emotion}". ` +
+      `Etapa ${currentStage}. En tu última reflexión notaste: "${latestPea.emotion}". ` +
       `Y mencionaste que lo que más te cuesta es "${onboarding.difficulty}". ` +
       `¿Quieres explorar esa conexión hoy?`
     );
   }
 
   return (
-    `Día ${currentDay}. Estoy aquí para observar contigo. ` +
+    `Etapa ${currentStage}. Estoy aquí para observar contigo. ` +
     `No voy a juzgarte ni etiquetarte. Solo quiero ayudarte a ver tus patrones. ` +
     `¿Qué pensaste, qué sentiste y qué hiciste hoy?`
   );

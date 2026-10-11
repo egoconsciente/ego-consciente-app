@@ -51,7 +51,7 @@ function Triquetra({ className }: { className?: string }) {
 
 export default function Chat() {
   const { user } = useAuth();
-  const { currentStage } = useStages();
+  const { currentStage, isLoading: stagesLoading, loadError } = useStages();
   const reduced = respectsReducedMotion();
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -69,7 +69,8 @@ export default function Chat() {
 
   // Load chat history + ego context on mount (lógica intacta)
   useEffect(() => {
-    if (!user) return;
+    if (!user || stagesLoading) return;
+    if (loadError) { setEgoCtx(null); setIsLoading(false); return; }
     let cancelled = false;
 
     const init = async () => {
@@ -82,6 +83,7 @@ export default function Chat() {
 
       if (cancelled) return;
 
+      ctx.currentStage = currentStage;
       const memory = buildEgoMemory(user.id, ctx);
       saveEgoMemory(memory);
 
@@ -101,11 +103,13 @@ export default function Chat() {
       setIsLoading(false);
     };
 
-    init();
+    init().catch(error => {
+      if (!cancelled) { console.error("Error cargando contexto del Ego:", error); setEgoCtx(null); setIsLoading(false); }
+    });
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, currentStage, stagesLoading, loadError]);
 
   const sendText = useCallback(
     async (text: string): Promise<boolean> => {
@@ -181,7 +185,7 @@ export default function Chat() {
     return phase;
   }, [currentStage]);
 
-  if (isLoading) {
+  if (isLoading || stagesLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-160px)]">
@@ -226,7 +230,7 @@ export default function Chat() {
               Panel
             </Link>
 
-            {phaseInfo && currentStage && (
+            {!loadError && phaseInfo && currentStage && (
               <span className="ec-eyebrow text-[hsl(var(--ink-soft))] tracking-wider">
                 Etapa {String(currentStage).padStart(2, "0")}
                 <span className="text-[hsl(var(--ink-soft))]/60">
@@ -266,6 +270,8 @@ export default function Chat() {
             </div>
           </div>
         </header>
+
+        {!egoCtx && <p role="alert" className="px-5 py-3">No pude cargar tu etapa. Recarga la página para volver a intentar.</p>}
 
         {/* Messages — editorial */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-7 space-y-6">
@@ -426,7 +432,7 @@ export default function Chat() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isTyping || !egoCtx}
               aria-label="Enviar mensaje"
               className={cn(
                 "absolute right-2 bottom-2",

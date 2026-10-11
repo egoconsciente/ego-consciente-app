@@ -1,0 +1,18 @@
+$ node --test tests/*.test.cjs
+✔ starts weeks after registration (62.989331ms)
+✔ slow progress over 40 days (49.473543ms)
+✔ several stages in one day (34.623892ms)
+✔ interruption (35.178417ms)
+✔ long absence (36.084572ms)
+✔ completed journey remains at 40 (39.225636ms)
+✔ gaps, duplicate rows and invalid numbers do not skip stages (0.245972ms)
+✔ Supabase progress query failure is not mistaken for stage one (24.269386ms)
+✔ PEA collision preserves the existing entry and reports failure (17.995757ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 841.673418

@@ -27,6 +27,7 @@ const db = vi.hoisted(() => ({
       notes: "mi nota",
       reflection_payload: { draft: "intacto" },
     },
+    ...Array.from({length: 6}, (_, i) => ({stage_number: i + 1, status: "completed", thought: "observado", emotion: "calma", action: "escribo", notes: "guardado", reflection_payload: {draft: "intacto"}})),
   ],
 }));
 vi.mock("@/lib/auth-context", () => ({

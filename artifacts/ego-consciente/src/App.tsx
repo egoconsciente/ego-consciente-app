@@ -68,11 +68,11 @@ const DashboardRoute = ({ component: Component }: { component: React.ComponentTy
   if (!onboardingComplete) return <Redirect to="/onboarding" />;
 
   return (
-    <StoreProvider>
-      <StageProvider>
+    <StageProvider>
+      <StoreProvider>
         <Component />
-      </StageProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </StageProvider>
   );
 };
 
@@ -93,18 +93,18 @@ const ProcessRoute = ({ component: Component }: { component: React.ComponentType
 
   if (!portalComplete) {
     return (
-      <StoreProvider>
-        <ProcessGate />
-      </StoreProvider>
+      <StageProvider>
+        <StoreProvider><ProcessGate /></StoreProvider>
+      </StageProvider>
     );
   }
 
   return (
-    <StoreProvider>
-      <StageProvider>
+    <StageProvider>
+      <StoreProvider>
         <ProcessContent component={Component} />
-      </StageProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </StageProvider>
   );
 };
 

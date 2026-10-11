@@ -16,13 +16,13 @@ const ACCENT_HUE: Record<"terracota" | "ambar" | "tierra", string> = {
 };
 
 export default function Reflection() {
-  const { currentDay, addReflection, reflections, isLoadingData } = useStore();
+  const { currentStage, addReflection, reflections, isLoadingData } = useStore();
   const { toast } = useToast();
   const reduced = respectsReducedMotion();
 
   const existingReflection = useMemo(
-    () => reflections.find((r) => r.day === currentDay),
-    [reflections, currentDay],
+    () => reflections.find((r) => r.day === currentStage),
+    [reflections, currentStage],
   );
 
   const [p, setP] = useState(existingReflection?.pensamiento || "");
@@ -37,20 +37,27 @@ export default function Reflection() {
       setE(existingReflection.emocion);
       setA(existingReflection.accion);
       setIsSaved(true);
+    } else {
+      setP(""); setE(""); setA(""); setIsSaved(false);
     }
   }, [existingReflection]);
 
   const canSubmit = p.trim().length >= 3 && e.trim().length >= 3 && a.trim().length >= 3;
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!canSubmit || submitting) return;
     setSubmitting(true);
-    addReflection(p, e, a);
+    const saved = await addReflection(p, e, a);
+    if (!saved) {
+      toast({ title: "No se guardó el registro", description: "Si esta etapa ya tiene un registro, se conserva intacto. Revisa tu conexión antes de volver a intentar.", variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
     setIsSaved(true);
     toast({
       title: "Registro guardado",
-      description: "Tu observación del día quedó anotada.",
+      description: "Tu observación de la etapa quedó anotada.",
       duration: 3500,
     });
     setSubmitting(false);
@@ -87,7 +94,7 @@ export default function Reflection() {
             </span>
             <div className="min-w-0">
               <p className="ec-eyebrow text-[hsl(var(--terracota))]">
-                Diario libre · Día {currentDay}
+                Diario libre · Etapa {currentStage}
               </p>
               <h1 className="mt-1.5 ec-serif text-2xl sm:text-3xl lg:text-[34px] leading-tight text-[hsl(var(--tierra-deep))]">
                 Registro P-E-A libre
@@ -127,7 +134,7 @@ export default function Reflection() {
                       Guardado
                     </p>
                     <p className="mt-0.5 ec-serif text-[17px] text-[hsl(var(--tierra-deep))]">
-                      Tu observación del día {currentDay}
+                      Tu observación de la etapa {currentStage}
                     </p>
                   </div>
                 </div>
@@ -241,7 +248,7 @@ export default function Reflection() {
             </div>
             <ul className="space-y-2">
               {sortedHistory
-                .filter((r) => r.day !== currentDay)
+                .filter((r) => r.day !== currentStage)
                 .slice(0, 4)
                 .map((ref) => (
                   <li
