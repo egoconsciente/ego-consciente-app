@@ -38,6 +38,7 @@ import {
 export default function StageDetail({ stageNumber }: { stageNumber: number }) {
   const [, setLocation] = useLocation();
   const {
+    pause,
     currentStage,
     getStageProgress,
     completeStageWithData,
@@ -721,6 +722,10 @@ export default function StageDetail({ stageNumber }: { stageNumber: number }) {
       <PauseProcessDialog
         open={pauseOpen}
         onCancel={() => setPauseOpen(false)}
+        onConfirm={() => pause.setPaused(true)}
+        busy={pause.busy}
+        error={pause.error}
+        onRetry={() => void pause.reload()}
       />
     </AppLayout>
   );

@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { JourneyPauseGate } from "@/components/journey-pause-gate";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +7,7 @@ import NotFound from "@/pages/not-found";
 
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { StoreProvider } from "@/lib/store-context";
-import { StageProvider } from "@/lib/stage-context";
+import { StageProvider, useStages } from "@/lib/stage-context";
 import { isDemoMode } from "@/lib/demo-mode";
 import { DemoBanner } from "@/components/demo-banner";
 import { ProcessGate } from "@/components/process-gate";
@@ -75,6 +76,15 @@ const DashboardRoute = ({ component: Component }: { component: React.ComponentTy
   );
 };
 
+function ProcessContent({ component: Component }: { component: React.ComponentType }) {
+  const { pause } = useStages();
+  const [location] = useLocation();
+  if (location.startsWith("/journey")) {
+    return <JourneyPauseGate pause={pause}><Component /></JourneyPauseGate>;
+  }
+  return <Component />;
+}
+
 const ProcessRoute = ({ component: Component }: { component: React.ComponentType }) => {
   const { isAuthenticated, onboardingComplete, portalComplete } = useAuth();
 
@@ -92,7 +102,7 @@ const ProcessRoute = ({ component: Component }: { component: React.ComponentType
   return (
     <StageProvider>
       <StoreProvider>
-        <Component />
+        <ProcessContent component={Component} />
       </StoreProvider>
     </StageProvider>
   );

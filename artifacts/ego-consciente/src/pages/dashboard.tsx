@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ProcessCare } from "@/components/process-care";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -16,11 +16,7 @@ import { EcSigil, StageNumeral } from "@/components/ec";
 import { respectsReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import {
-  SafetyBanner,
-  GroundingSheet,
-  PauseProcessDialog,
   Step72Card,
-  type SafetyLevel,
 } from "@/components/safety";
 
 const PHASES = [
@@ -144,6 +140,7 @@ function PreProcessDashboard({ userName }: { userName: string }) {
 // ─────────────────────────────────────────────────────────────
 function ActiveDashboard({ userName }: { userName: string }) {
   const {
+    pause,
     currentStage,
     completedCount,
     getCurrentStageDefinition,
@@ -152,13 +149,6 @@ function ActiveDashboard({ userName }: { userName: string }) {
   } = useStages();
   const stageDef = getCurrentStageDefinition();
   const reduced = respectsReducedMotion();
-
-  // Safety state — UI preparada, sin lógica clínica todavía.
-  // Default 'none' = invisible. Declarado antes del early return para
-  // mantener el orden estable de hooks (React rules-of-hooks).
-  const [safetyLevel] = useState<SafetyLevel>("none");
-  const [groundingOpen, setGroundingOpen] = useState(false);
-  const [pauseOpen, setPauseOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -205,12 +195,7 @@ function ActiveDashboard({ userName }: { userName: string }) {
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8 lg:space-y-10">
-        {/* Safety banner (oculto si level='none') */}
-        <SafetyBanner
-          level={safetyLevel}
-          onGround={() => setGroundingOpen(true)}
-          onPause={() => setPauseOpen(true)}
-        />
+        <ProcessCare pause={pause} />
 
         {/* Greeting */}
         <header>
@@ -236,11 +221,11 @@ function ActiveDashboard({ userName }: { userName: string }) {
 
         {/* Today + Phase Map */}
         <section className="grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] gap-6">
-          <TodayCard
+          {!pause.paused && !pause.loading && !pause.error && <TodayCard
             stageNumber={currentStage}
             stageDef={stageDef}
             reduced={reduced}
-          />
+          />}
           <PhaseMap phaseStats={phaseStats} />
         </section>
 
@@ -267,15 +252,6 @@ function ActiveDashboard({ userName }: { userName: string }) {
         <Step72Card />
       </div>
 
-      {/* Diálogos de cuidado del proceso (preparados, sin backend) */}
-      <GroundingSheet
-        open={groundingOpen}
-        onClose={() => setGroundingOpen(false)}
-      />
-      <PauseProcessDialog
-        open={pauseOpen}
-        onCancel={() => setPauseOpen(false)}
-      />
     </AppLayout>
   );
 }
