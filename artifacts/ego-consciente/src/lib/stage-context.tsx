@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { resolveJourneyProgress } from "./journey-progress";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { TOTAL_STAGES, type StageDefinition, getStage } from "./stages";
@@ -39,6 +40,7 @@ interface StageContextType {
   currentStage: number;
   completedCount: number;
   isLoading: boolean;
+  loadError: boolean;
   getCurrentStageDefinition: () => StageDefinition | undefined;
   getStageProgress: (stageNumber: number) => StageProgress;
   completeStageWithData: (stageNumber: number, data: StageReflection, reflectionPayload?: Record<string, unknown>) => Promise<{ success: boolean; validation?: ValidationResult }>;
@@ -108,6 +110,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
   const { user, portalComplete } = useAuth();
   const [stages, setStages] = useState<StageProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadStages = useCallback(async () => {
     if (!user || !portalComplete) {
@@ -117,6 +120,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsLoading(true);
+    setLoadError(false);
 
     const { data, error } = await supabase
       .from("stage_progress")
@@ -126,6 +130,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.error("[StageContext] Error loading stages:", error);
+      setLoadError(true);
       setIsLoading(false);
       return;
     }
@@ -163,26 +168,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
     [stages]
   );
 
-  const currentStage = (() => {
-    if (stages.length === 0) return 1;
-
-    const inProgress = stages.find((s) => s.status === "in_progress");
-    if (inProgress) return inProgress.stageNumber;
-
-    const completedNums = stages
-      .filter((s) => s.status === "completed")
-      .map((s) => s.stageNumber);
-
-    if (completedNums.length === 0) return 1;
-
-    const maxCompleted = Math.max(...completedNums);
-    if (maxCompleted >= TOTAL_STAGES) return TOTAL_STAGES;
-    return maxCompleted + 1;
-  })();
-
-  const completedCount = stages.filter((s) => s.status === "completed").length;
-
-  const isProcessComplete = completedCount >= TOTAL_STAGES;
+  const { currentStage, completedCount, isProcessComplete } = resolveJourneyProgress(stages);
 
   const getCurrentStageDefinition = useCallback(() => {
     return getStage(currentStage);
@@ -395,6 +381,7 @@ export function StageProvider({ children }: { children: React.ReactNode }) {
         currentStage,
         completedCount,
         isLoading,
+        loadError,
         getCurrentStageDefinition,
         getStageProgress,
         completeStageWithData,

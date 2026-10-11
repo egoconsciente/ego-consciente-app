@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import { useStages } from "./stage-context";
 import { useAuth } from "./auth-context";
 
 export interface Reflection {
@@ -13,8 +14,8 @@ export interface Reflection {
 
 interface StoreContextType {
   reflections: Reflection[];
-  addReflection: (p: string, e: string, a: string) => void;
-  currentDay: number;
+  addReflection: (p: string, e: string, a: string) => Promise<boolean>;
+  currentStage: number;
   isLoadingData: boolean;
 }
 
@@ -23,7 +24,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [reflections, setReflections] = useState<Reflection[]>([]);
-  const [currentDay, setCurrentDay] = useState(1);
+  const { currentStage, isLoading: isLoadingStages, loadError } = useStages();
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
@@ -31,34 +32,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     const loadData = async () => {
       setIsLoadingData(true);
-
-      const { data: journeyState } = await supabase
-        .from("journey_state")
-        .select("process_started_at")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (journeyState?.process_started_at) {
-        const daysDiff = Math.floor(
-          (Date.now() - new Date(journeyState.process_started_at).getTime()) /
-            (1000 * 60 * 60 * 24)
-        );
-        setCurrentDay(Math.min(Math.max(daysDiff + 1, 1), 40));
-      } else {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("created_at")
-          .eq("id", user.id)
-          .single();
-
-        if (profile) {
-          const daysDiff = Math.floor(
-            (Date.now() - new Date(profile.created_at).getTime()) /
-              (1000 * 60 * 60 * 24)
-          );
-          setCurrentDay(Math.min(Math.max(daysDiff + 1, 1), 40));
-        }
-      }
 
       const { data: entries, error } = await supabase
         .from("pea_entries")
@@ -95,53 +68,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, [user]);
 
-  const addReflection = (p: string, e: string, a: string) => {
-    if (!user) return;
-
-    const tempId = `temp_${Math.random().toString(36).substring(7)}`;
-    const newReflection: Reflection = {
-      id: tempId,
-      day: currentDay,
-      pensamiento: p,
-      emocion: e,
-      accion: a,
-      date: new Date(),
-    };
-    setReflections((prev) => {
-      const filtered = prev.filter((ref) => ref.day !== currentDay);
-      return [...filtered, newReflection].sort((x, y) => x.day - y.day);
-    });
-
-    supabase
-      .from("pea_entries")
-      .upsert(
-        {
-          user_id: user.id,
-          day_number: currentDay,
-          thought: p,
-          emotion: e,
-          action: a,
-        },
-        { onConflict: "user_id,day_number" }
-      )
-      .select()
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error guardando reflexión:", error);
-        } else if (data) {
-          setReflections((prev) =>
-            prev.map((ref) =>
-              ref.id === tempId ? { ...ref, id: data.id } : ref
-            )
-          );
-        }
-      });
+  const addReflection = async (p: string, e: string, a: string): Promise<boolean> => {
+    if (!user || isLoadingData || isLoadingStages || loadError) return false;
+    // Never upsert into a legacy chronological slot: a conflicting entry must survive.
+    const { data, error } = await supabase.from("pea_entries").insert({
+      user_id: user.id, day_number: currentStage, thought: p, emotion: e, action: a,
+    }).select().single();
+    if (error || !data) {
+      console.error("Error guardando reflexión (registro existente protegido):", error);
+      return false;
+    }
+    setReflections(prev => [...prev, {
+      id: data.id, day: data.day_number, pensamiento: data.thought,
+      emocion: data.emotion, accion: data.action, date: new Date(data.created_at),
+    }]);
+    return true;
   };
 
   return (
     <StoreContext.Provider
-      value={{ reflections, addReflection, currentDay, isLoadingData }}
+      value={{ reflections, addReflection, currentStage, isLoadingData: isLoadingData || isLoadingStages }}
     >
       {children}
     </StoreContext.Provider>
